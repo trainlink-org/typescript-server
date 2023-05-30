@@ -2,12 +2,15 @@ import { LocoStore } from './locos';
 import { AutomationRuntime } from './automation';
 import { dbConnection } from './database';
 import { io, startSocketServer } from './socket';
-import { SocketHardwareAdapter } from './adapter';
+import { DummyHardwareAdapter, SocketHardwareAdapter } from './adapter';
 import { TurnoutMap } from './turnouts';
 
 export function startServer() {
     dbConnection.connect();
     startSocketServer(process.env.NODE_DOCKER_PORT);
+    void store.loadSave();
+    turnoutMap.loadTurnoutMap();
+    runtime.loadPersistentScripts();
 }
 
 const environment = process.env.NODE_ENV;
@@ -22,7 +25,6 @@ if (isDebug) {
 }
 
 export const store = new LocoStore();
-void store.loadSave();
 export const runtime = new AutomationRuntime(store, (runningAutomations) => {
     io.emit('automation/fetchRunningResponse', runningAutomations);
 });
@@ -32,9 +34,8 @@ runtime.registerPersistentUpdateCallback(() => {
     io.emit('automation/fetchAllResponse', automationList);
 });
 
-export const adapter = new SocketHardwareAdapter();
+export const adapter = new DummyHardwareAdapter();
 
 export const trackPower = { state: false };
 
 export const turnoutMap = new TurnoutMap();
-turnoutMap.loadTurnoutMap();

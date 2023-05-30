@@ -54,7 +54,7 @@ export class Runtime {
     ) {
         this._store = store;
         this._updateCallback = callback;
-        this._loadPersistentScripts();
+        // this.loadPersistentScripts();
     }
 
     /**
@@ -68,7 +68,7 @@ export class Runtime {
     /**
      * Loads automations from the persistent store
      */
-    private async _loadPersistentScripts() {
+    public async loadPersistentScripts() {
         const scripts = await this._persistentStore.loadScripts();
         scripts.forEach((script) => {
             if (script.eventHandlerType !== EventHandlerType.none) {

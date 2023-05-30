@@ -4,6 +4,7 @@ import {
     TurnoutState,
     type HardwareAdapter,
 } from '@trainlink-org/trainlink-types';
+import { resolve } from 'path';
 
 import { io, type Socket } from 'socket.io-client';
 
@@ -19,6 +20,7 @@ export class SocketHardwareAdapter implements HardwareAdapter {
     constructor() {
         // Connect to native connector
         this._socket = io('http://host.docker.internal:3002');
+        this._socket.disconnect();
         this._socket.on('connect', () => {
             console.log('Connected');
             this._socket.emit('handshake', version.version);
@@ -113,6 +115,40 @@ export class SocketHardwareAdapter implements HardwareAdapter {
     trackPowerSet(state: boolean): Promise<void> {
         return new Promise<void>((resolve) => {
             this._socket.emit('track/power', state);
+            resolve();
+        });
+    }
+}
+
+export class DummyHardwareAdapter implements HardwareAdapter {
+    locoSetSpeed(
+        address: number,
+        speed: number,
+        direction: Direction
+    ): Promise<void> {
+        return new Promise<void>((resolve) => {
+            console.log(`${address} - ${speed} @ ${direction}`);
+            resolve();
+        });
+    }
+
+    locoEstop(address: number): Promise<void> {
+        return new Promise<void>((resolve) => {
+            console.log(`${address}`);
+            resolve();
+        });
+    }
+
+    turnoutSet(id: number, state: TurnoutState): Promise<void> {
+        return new Promise<void>((resolve) => {
+            console.log(`${id} - ${state}`);
+            resolve();
+        });
+    }
+
+    trackPowerSet(state: boolean): Promise<void> {
+        return new Promise<void>((resolve) => {
+            console.log(`${state}`);
             resolve();
         });
     }
