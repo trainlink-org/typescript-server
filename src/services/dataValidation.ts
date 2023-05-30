@@ -8,10 +8,10 @@ import { store } from '../index';
 export async function validateName(name: string): Promise<boolean> {
     console.log(`Validating name (${name})`);
     // Start by assuming input is valid, set to invalid if it fails a condition
-    let passes = true;
+    let isCorrect = true;
     // Check if the name is empty
     if (name === '') {
-        passes = false;
+        isCorrect = false;
     }
     // Check if the name is taken
     if (
@@ -22,12 +22,12 @@ export async function validateName(name: string): Promise<boolean> {
                 .catch(() => resolve(false));
         })
     ) {
-        passes = false;
+        isCorrect = false;
     }
-    if (!passes) {
+    if (!isCorrect) {
         console.log('Name validation failed');
     }
-    return passes;
+    return isCorrect;
 }
 
 /**
@@ -37,12 +37,12 @@ export async function validateName(name: string): Promise<boolean> {
  */
 export async function validateAddress(address: number): Promise<boolean> {
     console.log(`Validating address (${address})`);
-    let passes = true;
+    let isCorrect = true;
     if (isNaN(address)) {
-        passes = false;
+        isCorrect = false;
     }
     if (address <= 0 || address > 10293) {
-        passes = false;
+        isCorrect = false;
     }
     if (
         await new Promise<boolean>((resolve) => {
@@ -52,12 +52,12 @@ export async function validateAddress(address: number): Promise<boolean> {
                 .catch(() => resolve(false));
         })
     ) {
-        passes = false;
+        isCorrect = false;
     }
-    if (!passes) {
+    if (!isCorrect) {
         console.log('Address validation failed');
     }
-    return passes;
+    return isCorrect;
 }
 
 /**
@@ -69,12 +69,12 @@ export async function validateCurrentAddress(
     address: number
 ): Promise<boolean> {
     console.log(`Validating current address (${address})`);
-    let passes = true;
+    let isCorrect = true;
     if (isNaN(address)) {
-        passes = false;
+        isCorrect = false;
     }
     if (address <= 0 || address > 10293) {
-        passes = false;
+        isCorrect = false;
     }
     if (
         !(await new Promise<boolean>((resolve) => {
@@ -84,12 +84,12 @@ export async function validateCurrentAddress(
                 .catch(() => resolve(false));
         }))
     ) {
-        passes = false;
+        isCorrect = false;
     }
-    if (!passes) {
+    if (!isCorrect) {
         console.log('Current address validation failed');
     }
-    return passes;
+    return isCorrect;
 }
 
 /**

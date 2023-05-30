@@ -1,4 +1,4 @@
-import { AutomationCommand, Scope } from '../types';
+import type { AutomationCommand, Scope } from '../types';
 
 import { Direction } from '@trainlink-org/trainlink-types';
 
@@ -43,12 +43,12 @@ export class estop implements AutomationCommand {
  * Implements the FWD command
  */
 export class fwd implements AutomationCommand {
-    private newSpeed: number;
+    private _newSpeed: number;
     params = ['number'];
     static params = ['number'];
 
     constructor(speedChange: number) {
-        this.newSpeed = speedChange;
+        this._newSpeed = speedChange;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -65,14 +65,14 @@ export class fwd implements AutomationCommand {
         scope.currentCommand = [this.toString()];
         return new Promise<void>((resolve) => {
             if (scope.loco) {
-                if (this.newSpeed === -1) {
+                if (this._newSpeed === -1) {
                     new estop().execute(scope);
                 } else {
                     console.log(
-                        `Move loco ${scope.loco.address} forward at speed ${this.newSpeed}`
+                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
                     );
                     scope.loco.direction = Direction.forward;
-                    scope.loco.speed = this.newSpeed;
+                    scope.loco.speed = this._newSpeed;
                 }
             }
             resolve();
@@ -80,7 +80,7 @@ export class fwd implements AutomationCommand {
     }
 
     toString(): string {
-        return `FWD(${this.newSpeed})`;
+        return `FWD(${this._newSpeed})`;
     }
 }
 
@@ -88,12 +88,12 @@ export class fwd implements AutomationCommand {
  * Implements the REV command
  */
 export class rev implements AutomationCommand {
-    private newSpeed: number;
+    private _newSpeed: number;
     params = ['number'];
     static params = ['number'];
 
     constructor(speedChange: number) {
-        this.newSpeed = speedChange;
+        this._newSpeed = speedChange;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -110,14 +110,14 @@ export class rev implements AutomationCommand {
         scope.currentCommand = [this.toString()];
         return new Promise<void>((resolve) => {
             if (scope.loco) {
-                if (this.newSpeed === -1) {
+                if (this._newSpeed === -1) {
                     new estop().execute(scope);
                 } else {
                     console.log(
-                        `Move loco ${scope.loco.address} forward at speed ${this.newSpeed}`
+                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
                     );
                     scope.loco.direction = Direction.reverse;
-                    scope.loco.speed = this.newSpeed;
+                    scope.loco.speed = this._newSpeed;
                 }
             }
             resolve();
@@ -125,7 +125,7 @@ export class rev implements AutomationCommand {
     }
 
     toString(): string {
-        return `REV(${this.newSpeed})`;
+        return `REV(${this._newSpeed})`;
     }
 }
 
@@ -133,12 +133,12 @@ export class rev implements AutomationCommand {
  * Implements the SPEED command
  */
 export class speed implements AutomationCommand {
-    private newSpeed: number;
+    private _newSpeed: number;
     params = ['number'];
     static params = ['number'];
 
     constructor(speed: number) {
-        this.newSpeed = speed;
+        this._newSpeed = speed;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -156,16 +156,16 @@ export class speed implements AutomationCommand {
         return new Promise<void>((resolve) => {
             if (scope.loco) {
                 console.log(
-                    `Move loco ${scope.loco.address} at speed ${this.newSpeed}`
+                    `Move loco ${scope.loco.address} at speed ${this._newSpeed}`
                 );
-                scope.loco.speed = this.newSpeed;
+                scope.loco.speed = this._newSpeed;
             }
             resolve();
         });
     }
 
     toString(): string {
-        return `SPEED(${this.newSpeed})`;
+        return `SPEED(${this._newSpeed})`;
     }
 }
 

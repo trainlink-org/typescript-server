@@ -1,4 +1,4 @@
-import { AutomationCommand, Scope } from '../types';
+import type { AutomationCommand, Scope } from '../types';
 
 import { TurnoutState } from '@trainlink-org/trainlink-types';
 
@@ -9,10 +9,10 @@ export class throwTurnout implements AutomationCommand {
     params = ['number'];
     static params = ['number'];
 
-    private id: number;
+    private _id: number;
 
     constructor(id: number) {
-        this.id = id;
+        this._id = id;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -31,14 +31,14 @@ export class throwTurnout implements AutomationCommand {
 
         // Actually executes the function
         return new Promise<void>((resolve) => {
-            console.log(`Throw point ${this.id}`);
-            scope.turnouts.setTurnout(this.id, TurnoutState.thrown);
+            console.log(`Throw point ${this._id}`);
+            scope.turnouts.setTurnout(this._id, TurnoutState.thrown);
             resolve();
         });
     }
 
     toString(): string {
-        return `THROW(${this.id})`;
+        return `THROW(${this._id})`;
     }
 }
 
@@ -49,10 +49,10 @@ export class closeTurnout implements AutomationCommand {
     params = ['number'];
     static params = ['number'];
 
-    private id: number;
+    private _id: number;
 
     constructor(id: number) {
-        this.id = id;
+        this._id = id;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -71,14 +71,14 @@ export class closeTurnout implements AutomationCommand {
 
         // Actually executes the function
         return new Promise<void>((resolve) => {
-            console.log(`Close point ${this.id}`);
-            scope.turnouts.setTurnout(this.id, TurnoutState.closed);
+            console.log(`Close point ${this._id}`);
+            scope.turnouts.setTurnout(this._id, TurnoutState.closed);
             resolve();
         });
     }
 
     toString(): string {
-        return `CLOSE(${this.id})`;
+        return `CLOSE(${this._id})`;
     }
 }
 
@@ -89,11 +89,11 @@ export class ifThrown implements AutomationCommand {
     params = ['number'];
     static params = ['number'];
 
-    private id: number;
+    private _id: number;
     children: AutomationCommand[];
 
     constructor(id: number, children: AutomationCommand[]) {
-        this.id = id;
+        this._id = id;
         this.children = children;
     }
 
@@ -114,7 +114,7 @@ export class ifThrown implements AutomationCommand {
         // Actually executes the function
         return new Promise<void>((resolve) => {
             scope.turnouts
-                .getTurnout(this.id)
+                .getTurnout(this._id)
                 .then(async (turnout) => {
                     if (turnout.state === TurnoutState.thrown) {
                         for (const child of this.children) {
@@ -129,7 +129,7 @@ export class ifThrown implements AutomationCommand {
     }
 
     toString(): string {
-        return `IFTHROWN(${this.id})\n    ${this.children.join(
+        return `IFTHROWN(${this._id})\n    ${this.children.join(
             '\n    '
         )}\n    ENDIF`;
     }
@@ -142,11 +142,11 @@ export class ifClosed implements AutomationCommand {
     params = ['number'];
     static params = ['number'];
 
-    private id: number;
+    private _id: number;
     children: AutomationCommand[];
 
     constructor(id: number, children: AutomationCommand[]) {
-        this.id = id;
+        this._id = id;
         this.children = children;
     }
 
@@ -167,7 +167,7 @@ export class ifClosed implements AutomationCommand {
         // Actually executes the function
         return new Promise<void>((resolve) => {
             scope.turnouts
-                .getTurnout(this.id)
+                .getTurnout(this._id)
                 .then(async (turnout) => {
                     if (turnout.state === TurnoutState.closed) {
                         for (const child of this.children) {
@@ -182,7 +182,7 @@ export class ifClosed implements AutomationCommand {
     }
 
     toString(): string {
-        return `IFCLOSED(${this.id})\n    ${this.children.join(
+        return `IFCLOSED(${this._id})\n    ${this.children.join(
             '\n    '
         )}\n    ENDIF`;
     }

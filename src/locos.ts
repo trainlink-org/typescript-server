@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { adapter } from './index';
 import { Loco, LocoStoreBase } from '@trainlink-org/shared-lib';
-import { LocoIdentifier, Direction } from '@trainlink-org/trainlink-types';
+import type { LocoIdentifier, Direction } from '@trainlink-org/trainlink-types';
 import { log } from './logger';
 import { dbConnection } from './database';
 import { io } from './socket';
@@ -52,10 +53,10 @@ export class LocoStore extends LocoStoreBase {
     deleteLoco(identifier: LocoIdentifier): boolean {
         const loco = this.getLocoFromIdentifier(identifier);
         if (loco !== undefined) {
-            const success =
+            const isSuccessful =
                 this.nameStore.delete(loco.name) &&
                 this.objectStore.delete(loco.address);
-            if (success) {
+            if (isSuccessful) {
                 const sql = 'DELETE FROM locos WHERE address = ?';
                 const inserts = [loco.address];
                 dbConnection.query(
@@ -68,9 +69,8 @@ export class LocoStore extends LocoStoreBase {
                 return true;
             }
             return false;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -125,12 +125,12 @@ export class LocoStore extends LocoStoreBase {
      */
     loadSave(): Promise<void> {
         return new Promise<void>((resolve) => {
-            type Result = {
+            interface Result {
                 idlocos: number;
                 name: string;
                 address: number;
                 description: string;
-            };
+            }
             dbConnection.query(
                 'SELECT * FROM locos',
                 (error, results: Result[]) => {
@@ -175,7 +175,12 @@ export class LocoStore extends LocoStoreBase {
                 socketSync === SyncLevel.All ||
                 socketSync === SyncLevel.SerialOnly
             ) {
-                adapter.locoSetSpeed(loco.address, loco.speed, loco.direction);
+                //TODO implement error handling
+                void adapter.locoSetSpeed(
+                    loco.address,
+                    loco.speed,
+                    loco.direction
+                );
             }
         }
     }
@@ -186,21 +191,22 @@ export class LocoStore extends LocoStoreBase {
  */
 class ProxyLoco extends Loco {
     public store: LocoStore;
-    private socketSync: SyncLevel;
+    private _socketSync: SyncLevel;
 
     constructor(loco: Loco, store: LocoStore, sync = SyncLevel.All) {
         super(loco.name, loco.address);
         this._speed = loco.speed;
         this._direction = loco.direction;
         this.store = store;
-        this.socketSync = sync;
+        this._socketSync = sync;
     }
 
     set speed(newSpeed: number) {
         super.speed = newSpeed;
-        this.store.getLoco(this.address, SyncLevel.None).then((loco) => {
+        //TODO implement error handling
+        void this.store.getLoco(this.address, SyncLevel.None).then((loco) => {
             loco.speed = newSpeed;
-            this.store.syncLoco(this, this.socketSync);
+            this.store.syncLoco(this, this._socketSync);
         });
     }
 
@@ -210,9 +216,10 @@ class ProxyLoco extends Loco {
 
     set direction(direction: Direction) {
         super.direction = direction;
-        this.store.getLoco(this.address, SyncLevel.None).then((loco) => {
+        //TODO implement error handling
+        void this.store.getLoco(this.address, SyncLevel.None).then((loco) => {
             loco.direction = direction;
-            this.store.syncLoco(this, this.socketSync);
+            this.store.syncLoco(this, this._socketSync);
         });
     }
 

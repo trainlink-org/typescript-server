@@ -1,4 +1,5 @@
-import { debug } from './index';
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+import { isDebug } from './index';
 
 /**
  * Describes the severity of log message
@@ -15,7 +16,7 @@ export enum LogLevel {
  * @param level Describes the severity of the log message
  */
 export function log(msg: unknown, level = LogLevel.Info) {
-    if (debug) {
+    if (isDebug) {
         switch (level) {
             case LogLevel.Info:
                 console.log(`${msg}`);

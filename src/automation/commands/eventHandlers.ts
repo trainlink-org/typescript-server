@@ -1,4 +1,4 @@
-import {
+import type {
     AutomationCommand,
     AutomationScript,
     Scope,
@@ -25,12 +25,12 @@ export class onClose implements AutomationScript, EventHandler {
     children: AutomationCommand[];
     scope: Scope | null;
     eventHandlerType = EventHandlerType.turnout;
-    private turnoutID: number;
+    private _turnoutID: number;
 
     constructor(turnoutID: number, children: AutomationCommand[]) {
         console.log(turnoutID);
         this.children = children;
-        this.turnoutID = turnoutID;
+        this._turnoutID = turnoutID;
         this.scope = null;
     }
 
@@ -43,11 +43,11 @@ export class onClose implements AutomationScript, EventHandler {
     }
 
     registerEventHandler(table: HandlerJumpTable) {
-        table.turnouts.close.set(this.turnoutID, this);
+        table.turnouts.close.set(this._turnoutID, this);
     }
 
     toString() {
-        return `ONCLOSE(${this.turnoutID})\n    ${this.children.join(
+        return `ONCLOSE(${this._turnoutID})\n    ${this.children.join(
             '\n    '
         )}\n    DONE`;
     }
@@ -71,12 +71,12 @@ export class onThrow implements AutomationScript, EventHandler {
     children: AutomationCommand[];
     scope: Scope | null;
     eventHandlerType = EventHandlerType.turnout;
-    private turnoutID: number;
+    private _turnoutID: number;
 
     constructor(turnoutID: number, children: AutomationCommand[]) {
         console.log(turnoutID);
         this.children = children;
-        this.turnoutID = turnoutID;
+        this._turnoutID = turnoutID;
         this.scope = null;
     }
 
@@ -89,11 +89,11 @@ export class onThrow implements AutomationScript, EventHandler {
     }
 
     registerEventHandler(table: HandlerJumpTable) {
-        table.turnouts.throw.set(this.turnoutID, this);
+        table.turnouts.throw.set(this._turnoutID, this);
     }
 
     toString() {
-        return `ONTHROW(${this.turnoutID})\n    ${this.children.join(
+        return `ONTHROW(${this._turnoutID})\n    ${this.children.join(
             '\n    '
         )}\n    DONE`;
     }

@@ -1,14 +1,14 @@
 import { adapter, store, trackPower } from '../index';
 import {
     Direction,
-    LocoIdentifier,
-    ServerToClientEvents,
-    ClientToServerEvents,
+    type LocoIdentifier,
+    type ServerToClientEvents,
+    type ClientToServerEvents,
 } from '@trainlink-org/trainlink-types';
 import { SyncLevel } from '../locos';
-import { SocketIoServer } from '../socket';
+import type { SocketIoServer } from '../socket';
 
-import { Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 
 /**
  * Used to update the speed of a loco in response to a socket packet and update other clients

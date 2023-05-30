@@ -1,27 +1,26 @@
 import { LocoStore } from './locos';
 import { AutomationRuntime } from './automation';
 import { dbConnection } from './database';
-import { startServer } from './socket';
+import { io, startServer } from './socket';
 import { SocketHardwareAdapter } from './adapter';
-import { io } from './socket';
 import { TurnoutMap } from './turnouts';
 
 dbConnection.connect();
 startServer(process.env.NODE_DOCKER_PORT);
 
 const environment = process.env.NODE_ENV;
-export const debug = environment === 'development';
+export const isDebug = environment === 'development';
 export const version = {
     name: process.env.npm_package_name?.replace('-', ' ') || 'Default server',
     version: process.env.npm_package_version || '0.0.0',
 };
 
-if (debug) {
+if (isDebug) {
     version.version += ' (Dev)';
 }
 
 export const store = new LocoStore();
-store.loadSave();
+void store.loadSave();
 export const runtime = new AutomationRuntime(store, (runningAutomations) => {
     io.emit('automation/fetchRunningResponse', runningAutomations);
 });

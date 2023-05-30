@@ -3,17 +3,17 @@ import { findPath, pathToTurnouts } from './routeFinder';
 
 import { adapter, runtime } from '../index';
 import {
-    Destination,
-    Turnout,
-    TurnoutLink,
+    type Destination,
+    type Turnout,
+    type TurnoutLink,
+    type RouteObject,
+    type Coordinate,
     TurnoutState,
-    RouteObject,
-    Coordinate,
 } from '@trainlink-org/trainlink-types';
 import { io } from '../socket';
 import { dbConnection } from '../database';
 
-import { Socket } from 'socket.io';
+import type { Socket } from 'socket.io';
 import { format as sqlFormat } from 'mysql';
 
 type turnoutId = number;
@@ -22,12 +22,12 @@ type turnoutId = number;
  * Stores the map of turnouts and destinations
  */
 export class TurnoutMap {
-    private turnoutGraph: TurnoutGraph = new TurnoutGraph();
-    private usedLinks: Map<number, number> = new Map();
-    private usedDestinations: Map<number, number> = new Map();
-    private usedTurnouts: Map<number, number> = new Map();
-    private activeRoutes: Map<number, RouteObject> = new Map();
-    private routeIdAllocator: routeIdAllocator = new routeIdAllocator();
+    private _turnoutGraph: TurnoutGraph = new TurnoutGraph();
+    private _usedLinks: Map<number, number> = new Map();
+    private _usedDestinations: Map<number, number> = new Map();
+    private _usedTurnouts: Map<number, number> = new Map();
+    private _activeRoutes: Map<number, RouteObject> = new Map();
+    private _routeIdAllocator: routeIdAllocator = new routeIdAllocator();
 
     /**
      * Set a turnout's state
@@ -38,10 +38,10 @@ export class TurnoutMap {
         const turnout = await this.getTurnout(id);
         if (turnout) {
             // Check if the change will invalidate a currently set route
-            const routeID = this.usedTurnouts.get(id);
+            const routeID = this._usedTurnouts.get(id);
             if (routeID !== undefined) {
-                const route = this.activeRoutes.get(routeID);
-                if (route) this.clearRoute(route);
+                const route = this._activeRoutes.get(routeID);
+                if (route) this._clearRoute(route);
             }
             // Set the state, update all clients and send it to the hardware adapter
             turnout.state = state;
@@ -51,7 +51,9 @@ export class TurnoutMap {
                 }/${id}`
             );
             io.emit('routes/turnoutUpdate', turnout.id, turnout.state);
-            adapter.turnoutSet(turnout.id, turnout.state);
+            //TODO implement error handling
+            void adapter.turnoutSet(turnout.id, turnout.state);
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             const turnoutState = turnout.state === TurnoutState.thrown;
             const query = 'UPDATE turnouts SET state = ? WHERE idturnouts = ?';
             const inserts = [turnoutState, id];
@@ -70,20 +72,20 @@ export class TurnoutMap {
         const start = await this.getDestination(startID);
         const end = await this.getDestination(endID);
         if (start && end) {
-            await findPath(start, end, this.turnoutGraph)
+            await findPath(start, end, this._turnoutGraph)
                 .then((path) =>
                     pathToTurnouts(
                         path,
                         this.getDestination,
-                        this.getDestinations,
+                        // this.getDestinations,
                         this.getTurnout,
-                        this.getTurnouts,
+                        // this.getTurnouts,
                         this.getLink,
-                        this.turnoutGraph
+                        this._turnoutGraph
                     )
                 )
                 .then((path) => {
-                    this.clearRoute(path);
+                    this._clearRoute(path);
                     path.turnouts.forEach(async (newTurnoutState) => {
                         const turnout = await this.getTurnout(
                             newTurnoutState.id
@@ -101,6 +103,7 @@ export class TurnoutMap {
                                 }/${turnout.id}`
                             );
                             adapter.turnoutSet(turnout.id, turnout.state);
+                            // eslint-disable-next-line @typescript-eslint/naming-convention
                             const turnoutState =
                                 turnout.state === TurnoutState.thrown;
                             const query =
@@ -114,8 +117,8 @@ export class TurnoutMap {
                             );
                         }
                     });
-                    const routeID = this.routeIdAllocator.newRouteID();
-                    this.activeRoutes.set(routeID, path);
+                    const routeID = this._routeIdAllocator.newRouteID();
+                    this._activeRoutes.set(routeID, path);
                     const destinations: number[] = [];
                     const turnouts: number[] = [];
                     const links: number[] = [];
@@ -123,15 +126,15 @@ export class TurnoutMap {
                         turnouts.push(turnout.id);
                         const turnoutObject = await this.getTurnout(turnout.id);
                         if (turnoutObject)
-                            this.usedTurnouts.set(turnoutObject.id, routeID);
+                            this._usedTurnouts.set(turnoutObject.id, routeID);
                     });
                     path.links.forEach((link) => {
                         links.push(link.id);
-                        this.usedLinks.set(link.id, routeID);
+                        this._usedLinks.set(link.id, routeID);
                     });
-                    this.usedDestinations.set(path.start.id, routeID);
+                    this._usedDestinations.set(path.start.id, routeID);
                     destinations.push(path.start.id);
-                    this.usedDestinations.set(path.end.id, routeID);
+                    this._usedDestinations.set(path.end.id, routeID);
                     destinations.push(path.end.id);
                     io.emit(
                         'routes/setRouteComponents',
@@ -151,22 +154,22 @@ export class TurnoutMap {
      * Clears a route from the list of set routes
      * @param route The route to clear
      */
-    private clearRoute(route: RouteObject) {
+    private _clearRoute(route: RouteObject) {
         const routesToClear: number[] = [];
         route.turnouts.forEach((turnout) => {
-            const routeID = this.usedTurnouts.get(turnout.id);
+            const routeID = this._usedTurnouts.get(turnout.id);
             if (routeID !== undefined) {
                 routesToClear.push(routeID);
             }
         });
         route.links.forEach((link) => {
-            const routeID = this.usedLinks.get(link.id);
+            const routeID = this._usedLinks.get(link.id);
             if (routeID !== undefined) {
                 routesToClear.push(routeID);
             }
         });
         [route.start, route.end].forEach((destination) => {
-            const routeID = this.usedDestinations.get(destination.id);
+            const routeID = this._usedDestinations.get(destination.id);
             if (routeID !== undefined) {
                 routesToClear.push(routeID);
             }
@@ -175,22 +178,22 @@ export class TurnoutMap {
         const turnouts: number[] = [];
         const links: number[] = [];
         routesToClear.forEach((routeID) => {
-            const route = this.activeRoutes.get(routeID);
+            const route = this._activeRoutes.get(routeID);
             if (route) {
                 route.turnouts.forEach((turnout) => {
                     turnouts.push(turnout.id);
-                    this.usedTurnouts.delete(turnout.id);
+                    this._usedTurnouts.delete(turnout.id);
                 });
                 route.links.forEach((link) => {
                     links.push(link.id);
-                    this.usedLinks.delete(link.id);
+                    this._usedLinks.delete(link.id);
                 });
-                this.usedDestinations.delete(route.start.id);
+                this._usedDestinations.delete(route.start.id);
                 destinations.push(route.start.id);
-                this.usedDestinations.delete(route.end.id);
+                this._usedDestinations.delete(route.end.id);
                 destinations.push(route.end.id);
-                this.activeRoutes.delete(routeID);
-                this.routeIdAllocator.freeRouteID(routeID);
+                this._activeRoutes.delete(routeID);
+                this._routeIdAllocator.freeRouteID(routeID);
             }
         });
         io.emit('routes/unsetRouteComponents', destinations, turnouts, links);
@@ -204,7 +207,7 @@ export class TurnoutMap {
         const destinations: number[] = [];
         const turnouts: number[] = [];
         const links: number[] = [];
-        this.activeRoutes.forEach((route) => {
+        this._activeRoutes.forEach((route) => {
             route.turnouts.forEach((turnout) => {
                 turnouts.push(turnout.id);
             });
@@ -450,7 +453,7 @@ export class TurnoutMap {
         new Promise<void>((resolve) => {
             this.getTurnouts().then((turnouts) => {
                 turnouts.forEach((turnout) => {
-                    this.addTurnoutGraph(turnout);
+                    this._addTurnoutGraph(turnout);
                 });
                 resolve();
             });
@@ -460,7 +463,7 @@ export class TurnoutMap {
                 return new Promise<void>((resolve) => {
                     this.getDestinations().then((destinations) => {
                         destinations.forEach((destination) => {
-                            this.addDestinationGraph(destination);
+                            this._addDestinationGraph(destination);
                         });
                         resolve();
                     });
@@ -498,7 +501,7 @@ export class TurnoutMap {
                                 }
                             );
                             turnoutLinks.forEach((value) => {
-                                this.addTurnoutLinkGraph(value);
+                                this._addTurnoutLinkGraph(value);
                             });
                             resolve();
                         }
@@ -545,24 +548,24 @@ export class TurnoutMap {
      * Adds a turnout to the graph
      * @param turnout The turnout to add
      */
-    private addTurnoutGraph(turnout: Turnout) {
-        this.turnoutGraph.addVertex(turnout);
+    private _addTurnoutGraph(turnout: Turnout) {
+        this._turnoutGraph.addVertex(turnout);
     }
 
     /**
      * Adds a link to the graph
      * @param turnoutLink The link to add
      */
-    private addTurnoutLinkGraph(turnoutLink: TurnoutLink) {
-        this.turnoutGraph.addEdge(turnoutLink);
+    private _addTurnoutLinkGraph(turnoutLink: TurnoutLink) {
+        this._turnoutGraph.addEdge(turnoutLink);
     }
 
     /**
      * Adds a destination to the graph
      * @param destination The destination to add
      */
-    private addDestinationGraph(destination: Destination) {
-        this.turnoutGraph.addVertex(destination);
+    private _addDestinationGraph(destination: Destination) {
+        this._turnoutGraph.addVertex(destination);
     }
 
     /**
@@ -632,15 +635,15 @@ type RouteID = number;
  * Manages and allocates RouteIDs
  */
 class routeIdAllocator {
-    private nextRouteID = 1;
-    private freedRouteIDs: number[] = [];
+    private _nextRouteID = 1;
+    private _freedRouteIDs: number[] = [];
 
     /**
      * Marks a previously allocated routeID as available
      * @param routeID The id to free
      */
     freeRouteID(routeID: RouteID) {
-        this.freedRouteIDs.push(routeID);
+        this._freedRouteIDs.push(routeID);
     }
 
     /**
@@ -649,16 +652,16 @@ class routeIdAllocator {
      */
     newRouteID(): RouteID {
         let newRouteID: number;
-        if (this.freedRouteIDs.length !== 0) {
-            const newRouteIDUndef = this.freedRouteIDs.shift();
+        if (this._freedRouteIDs.length !== 0) {
+            const newRouteIDUndef = this._freedRouteIDs.shift();
             if (newRouteIDUndef) {
                 newRouteID = newRouteIDUndef;
             } else {
                 newRouteID = 0;
             }
         } else {
-            newRouteID = this.nextRouteID;
-            this.nextRouteID++;
+            newRouteID = this._nextRouteID;
+            this._nextRouteID++;
         }
         return newRouteID;
     }

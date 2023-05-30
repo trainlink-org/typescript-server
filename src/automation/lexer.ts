@@ -1,4 +1,4 @@
-import { IntermediateSymbol } from './types';
+import type { IntermediateSymbol } from './types';
 import {
     AutomationError,
     AutomationErrorType,
@@ -24,9 +24,8 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                 splitInput = splitInput.filter((value) => {
                     if (value.trim().substring(0, 2) === '//') {
                         return false;
-                    } else {
-                        return true;
                     }
+                    return true;
                 });
 
                 // Remove anything after '//' in a line
@@ -152,9 +151,8 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                     const operandsArray = operands.split(',').map((value) => {
                         if (value.match(/["']+/g)) {
                             return value.replace(/["']+/g, '');
-                        } else {
-                            return value;
                         }
+                        return value;
                     });
 
                     return {
@@ -162,12 +160,11 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                         args: operandsArray,
                     };
                     // No parameters for this command
-                } else {
-                    return {
-                        name: value.toUpperCase(),
-                        args: [],
-                    };
                 }
+                return {
+                    name: value.toUpperCase(),
+                    args: [],
+                };
             }
         );
         resolve(symbolList);

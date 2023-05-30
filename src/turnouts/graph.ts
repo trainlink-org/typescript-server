@@ -1,4 +1,4 @@
-import { MapPoint, TurnoutLink } from '@trainlink-org/trainlink-types';
+import type { MapPoint, TurnoutLink } from '@trainlink-org/trainlink-types';
 
 /**
  * A undirected graph with weighted edges, used to represent the physical layout
@@ -7,19 +7,19 @@ import { MapPoint, TurnoutLink } from '@trainlink-org/trainlink-types';
  * Implemented using an adjacency list
  */
 export class TurnoutGraph {
-    private adjList: Map<MapPoint, adjVertex[]> = new Map();
-    private turnoutIDs: Map<number, MapPoint> = new Map();
-    private verticesNum = 0;
-    private edgesNum = 0;
+    private _adjList: Map<MapPoint, adjVertex[]> = new Map();
+    private _turnoutIDs: Map<number, MapPoint> = new Map();
+    private _verticesNum = 0;
+    private _edgesNum = 0;
 
     /**
      * Adds a vertex to the graph
      * @param label The {@link MapPoint} that this vertex represents
      */
     addVertex(label: MapPoint) {
-        this.adjList.set(label, []);
-        this.turnoutIDs.set(label.id, label);
-        this.verticesNum += 1;
+        this._adjList.set(label, []);
+        this._turnoutIDs.set(label.id, label);
+        this._verticesNum += 1;
     }
 
     /**
@@ -27,16 +27,16 @@ export class TurnoutGraph {
      * @param edge The {@link TurnoutLink} to add to the graph
      */
     addEdge(edge: TurnoutLink) {
-        const startPoint = this.turnoutIDs.get(edge.start);
-        const endPoint = this.turnoutIDs.get(edge.end);
+        const startPoint = this._turnoutIDs.get(edge.start);
+        const endPoint = this._turnoutIDs.get(edge.end);
         if (startPoint && endPoint) {
-            this.adjList
+            this._adjList
                 .get(startPoint)
                 ?.push({ vertex: endPoint, edge: edge });
-            this.adjList
+            this._adjList
                 .get(endPoint)
                 ?.push({ vertex: startPoint, edge: edge });
-            this.edgesNum += 1;
+            this._edgesNum += 1;
         }
     }
 
@@ -48,9 +48,9 @@ export class TurnoutGraph {
      * @returns a array of {@link adjVertex} containing the adjacent vertex and the link to it
      */
     getNeighbours(vertex: MapPoint): adjVertex[] {
-        const internalVertex = this.turnoutIDs.get(vertex.id);
-        if (internalVertex) return this.adjList.get(internalVertex) || [];
-        else return [];
+        const internalVertex = this._turnoutIDs.get(vertex.id);
+        if (internalVertex) return this._adjList.get(internalVertex) || [];
+        return [];
     }
 
     /**
@@ -60,17 +60,16 @@ export class TurnoutGraph {
      * @returns The length between them (the edge weight) or -1 if not found
      */
     getEdgeWeight(vertexA: MapPoint, vertexB: MapPoint): number {
-        const internalVertexA = this.turnoutIDs.get(vertexA.id);
-        const internalVertexB = this.turnoutIDs.get(vertexB.id);
+        const internalVertexA = this._turnoutIDs.get(vertexA.id);
+        const internalVertexB = this._turnoutIDs.get(vertexB.id);
         if (internalVertexA && internalVertexB) {
             return (
-                this.adjList.get(internalVertexA)?.filter((value) => {
+                this._adjList.get(internalVertexA)?.filter((value) => {
                     return value.vertex === internalVertexB;
                 })[0].edge.length || -1
             );
-        } else {
-            return -1;
         }
+        return -1;
     }
 
     /**
@@ -80,10 +79,10 @@ export class TurnoutGraph {
      * @returns The edge between them or undefined if not found
      */
     getEdge(vertexA: MapPoint, vertexB: MapPoint) {
-        const internalVertexA = this.turnoutIDs.get(vertexA.id);
-        const internalVertexB = this.turnoutIDs.get(vertexB.id);
+        const internalVertexA = this._turnoutIDs.get(vertexA.id);
+        const internalVertexB = this._turnoutIDs.get(vertexB.id);
         if (internalVertexA && internalVertexB) {
-            return this.adjList.get(internalVertexA)?.filter((value) => {
+            return this._adjList.get(internalVertexA)?.filter((value) => {
                 return value.vertex === internalVertexB;
             })[0].edge;
         }
@@ -95,7 +94,7 @@ export class TurnoutGraph {
      * @returns `true` if present, `false` if not
      */
     hasVertex(vertex: MapPoint): boolean {
-        return this.adjList.has(vertex);
+        return this._adjList.has(vertex);
     }
 
     /**
@@ -104,21 +103,21 @@ export class TurnoutGraph {
      * @returns The vertex if found
      */
     getVertex(id: number) {
-        return this.turnoutIDs.get(id);
+        return this._turnoutIDs.get(id);
     }
 
     /**
      * The total number of vertices in the graph
      */
     get vertices() {
-        return this.verticesNum;
+        return this._verticesNum;
     }
 
     /**
      * The total number of edges in the graph
      */
     get edges() {
-        return this.edgesNum;
+        return this._edgesNum;
     }
 
     /**
@@ -126,13 +125,13 @@ export class TurnoutGraph {
      * @returns An array of the vertices
      */
     getVertices() {
-        return Array.from(this.adjList.keys());
+        return Array.from(this._adjList.keys());
     }
 
     toString(): string {
         return (
             '{\n' +
-            Array.from(this.adjList.entries())
+            Array.from(this._adjList.entries())
                 .map((value) => {
                     return `\t[${value[0]} => ${value[1].map((value) => {
                         return ` ${value.vertex}(${value.edge.length})`;

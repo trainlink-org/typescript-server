@@ -1,12 +1,12 @@
-import { EventEmitter } from 'events';
-import { TurnoutMap } from '../turnouts';
+import type { EventEmitter } from 'events';
+import type { TurnoutMap } from '../turnouts';
 
 import {
     AutomationType,
-    AutomationScriptClient,
+    type AutomationScriptClient,
     EventHandlerType,
 } from '@trainlink-org/trainlink-types';
-import { Loco } from '@trainlink-org/shared-lib';
+import type { Loco } from '@trainlink-org/shared-lib';
 
 /**
  * Stores a symbol between the lexer and the parser
@@ -20,7 +20,7 @@ export interface IntermediateSymbol {
  * Allows running automations to access the data they need
  */
 export class Scope {
-    private pid = 0;
+    private _pid = 0;
     private _locoSpeed = 0;
     running = false;
     stopped = false;
@@ -206,7 +206,6 @@ export interface HandlerJumpTable {
 export function isEventHandler(object: unknown): object is EventHandler {
     if (typeof object === 'object' && object) {
         return 'eventHandlerType' in object && 'registerEventHandler' in object;
-    } else {
-        return false;
     }
+    return false;
 }

@@ -1,20 +1,22 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import type { TurnoutGraph } from './graph';
 import { PriorityQueue } from './priorityQueue';
 
-import { TurnoutState, isTurnout } from '@trainlink-org/trainlink-types';
-import type {
-    RouteObject,
-    Destination,
-    MapPoint,
-    Turnout,
-    TurnoutLink,
-    CurrentTurnoutState,
+import {
+    type RouteObject,
+    type Destination,
+    type MapPoint,
+    type Turnout,
+    type TurnoutLink,
+    type CurrentTurnoutState,
+    TurnoutState,
+    isTurnout,
 } from '@trainlink-org/trainlink-types';
 
 /**
  * Finds the shortest path between two destinations using Dijkstra's algorithm
- * @param start Destination to start the route at
- * @param end Destination to end the route at
+ * @param externalStart Destination to start the route at
+ * @param externalEnd Destination to end the route at
  * @param graph The {@link TurnoutGraph} to use to find routes
  * @returns A promise that resolves to an array of turnouts between the start and end
  */
@@ -119,9 +121,8 @@ export async function findPath(
         // Check a route was found
         if (distances.get(end) && distances.get(end) !== -1) {
             return path;
-        } else {
-            throw 'Not possible';
         }
+        throw 'Not possible';
     });
 }
 
@@ -168,9 +169,9 @@ function constructPath(
 export async function pathToTurnouts(
     path: number[],
     destinations: (id: number) => Promise<Destination>,
-    allDestinations: () => Promise<Destination[]>,
+    // allDestinations: () => Promise<Destination[]>,
     turnouts: (id: number) => Promise<Turnout>,
-    allTurnouts: () => Promise<Turnout[]>,
+    // allTurnouts: () => Promise<Turnout[]>,
     turnoutLinks: (id: number) => Promise<TurnoutLink>,
     graph: TurnoutGraph
 ): Promise<RouteObject> {
@@ -185,7 +186,8 @@ export async function pathToTurnouts(
 
         if (!(await destinations(point)) && (await turnouts(point))) {
             const turnout = turnouts(point);
-            turnout.then(async (turnout) => {
+            //TODO implement error handling
+            void turnout.then(async (turnout) => {
                 if (turnout) {
                     // Will never be false due to prev if
                     // Find the primary and secondary link for the turnout

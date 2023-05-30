@@ -5,25 +5,25 @@ import {
     type HardwareAdapter,
 } from '@trainlink-org/trainlink-types';
 
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 
 /**
  * Handles connecting to hardware via a websocket
  */
 export class SocketHardwareAdapter implements HardwareAdapter {
     /** Used to communicate with the hardware */
-    private socket: Socket;
+    private _socket: Socket;
     /** Stores the previous packet */
-    private prevPacket = '';
+    private _prevPacket = '';
 
     constructor() {
         // Connect to native connector
-        this.socket = io('http://host.docker.internal:3002');
-        this.socket.on('connect', () => {
+        this._socket = io('http://host.docker.internal:3002');
+        this._socket.on('connect', () => {
             console.log('Connected');
-            this.socket.emit('handshake', version.version);
+            this._socket.emit('handshake', version.version);
         });
-        this.socket.on('disconnect', (reason) => {
+        this._socket.on('disconnect', (reason) => {
             console.log('Hardware adapter disconnected');
             console.log(reason);
         });
@@ -42,18 +42,18 @@ export class SocketHardwareAdapter implements HardwareAdapter {
         direction: Direction
     ): Promise<void> {
         return new Promise<void>((resolve) => {
-            const packet = `${address} ${speed} ${this.directionToNumber(
+            const packet = `${address} ${speed} ${this._directionToNumber(
                 direction
             )}`;
-            if (packet !== this.prevPacket) {
-                if (this.directionToNumber(direction) !== -1) {
-                    this.socket.emit(
+            if (packet !== this._prevPacket) {
+                if (this._directionToNumber(direction) !== -1) {
+                    this._socket.emit(
                         'cab/setSpeed',
                         address,
                         speed,
-                        this.directionToNumber(direction)
+                        this._directionToNumber(direction)
                     );
-                    this.prevPacket = packet;
+                    this._prevPacket = packet;
                 } else {
                     this.locoEstop(address);
                 }
@@ -69,7 +69,7 @@ export class SocketHardwareAdapter implements HardwareAdapter {
      */
     locoEstop(address: number): Promise<void> {
         return new Promise<void>((resolve) => {
-            this.socket.emit('cab/eStop', address);
+            this._socket.emit('cab/eStop', address);
             resolve();
         });
     }
@@ -79,7 +79,7 @@ export class SocketHardwareAdapter implements HardwareAdapter {
      * @param direction The direction to convert
      * @returns The number output
      */
-    private directionToNumber(direction: Direction): number {
+    private _directionToNumber(direction: Direction): number {
         switch (direction) {
             case Direction.forward:
                 return 1;
@@ -100,7 +100,7 @@ export class SocketHardwareAdapter implements HardwareAdapter {
         return new Promise<void>((resolve) => {
             let numericState = 0;
             numericState = state === TurnoutState.thrown ? 1 : 0;
-            this.socket.emit('turnout/set', id, numericState);
+            this._socket.emit('turnout/set', id, numericState);
             resolve();
         });
     }
@@ -112,7 +112,7 @@ export class SocketHardwareAdapter implements HardwareAdapter {
      */
     trackPowerSet(state: boolean): Promise<void> {
         return new Promise<void>((resolve) => {
-            this.socket.emit('track/power', state);
+            this._socket.emit('track/power', state);
             resolve();
         });
     }

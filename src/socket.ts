@@ -1,10 +1,10 @@
 import { version as serverVersion, runtime, turnoutMap } from './index';
 import {
-    ServerToClientEvents,
-    ClientToServerEvents,
+    type ServerToClientEvents,
+    type ClientToServerEvents,
     AutomationError,
     AutomationErrorType,
-    Coordinate,
+    type Coordinate,
 } from '@trainlink-org/trainlink-types';
 import { log } from './logger';
 
@@ -19,7 +19,7 @@ import {
 } from './services/dataValidation';
 import * as routesConfig from './services/routesConfig';
 
-import { Server, Socket } from 'socket.io';
+import { Server, type Socket } from 'socket.io';
 
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
@@ -56,7 +56,8 @@ export function startServer(portString: string | undefined) {
                     serverVersion.version
                 );
                 statusHandler.sendLocoState(socket);
-                statusHandler.sendTurnoutMapState(socket);
+                //TODO implement error handling
+                void statusHandler.sendTurnoutMapState(socket);
                 statusHandler.sendTrackState(socket);
             } else {
                 // Client incompatible so disconnect
@@ -128,7 +129,8 @@ export function startServer(portString: string | undefined) {
             runtime.stopAutomation(pid);
         });
         socket.on('automation/executeAutomation', (id, locoID) => {
-            runtime.runScript(id, locoID);
+            //TODO implement error handling
+            void runtime.runScript(id, locoID);
         });
         socket.on('automation/deleteAutomation', (scriptID) => {
             runtime.deleteAutomation(scriptID);
@@ -137,10 +139,12 @@ export function startServer(portString: string | undefined) {
             runtime.setDescription(id, description);
         });
         socket.on('routes/setTurnout', (turnoutID, turnoutState) => {
-            turnoutMap.setTurnout(turnoutID, turnoutState);
+            //TODO implement error handling
+            void turnoutMap.setTurnout(turnoutID, turnoutState);
         });
         socket.on('routes/setRoute', (start, end) => {
-            turnoutMap.setRoute(start, end);
+            //TODO implement error handling
+            void turnoutMap.setRoute(start, end);
         });
         socket.on('config/addLoco', async (name, address) => {
             if (

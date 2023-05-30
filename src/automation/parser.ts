@@ -1,12 +1,12 @@
 import * as commands from './commands';
 import { onClose, onThrow } from './commands';
 import {
-    IntermediateSymbol,
-    AutomationScript,
+    type IntermediateSymbol,
+    type AutomationScript,
     Sequence,
     Route,
     Automation,
-    AutomationCommand,
+    type AutomationCommand,
 } from './types';
 
 import {
@@ -386,8 +386,8 @@ function verifyId(id: number, takenIds: number[], location: string) {
  * Basic stack implementation
  */
 class Stack<T> {
-    private array: Array<T> = [];
-    length = this.array.length;
+    private _array: Array<T> = [];
+    length = this._array.length;
 
     constructor(baseObject?: T) {
         if (baseObject !== undefined) {
@@ -396,14 +396,14 @@ class Stack<T> {
     }
 
     push(element: T) {
-        this.array.push(element);
+        this._array.push(element);
     }
 
     pop() {
-        return this.array.pop();
+        return this._array.pop();
     }
 
     peek() {
-        return this.array[this.array.length - 1];
+        return this._array[this._array.length - 1];
     }
 }

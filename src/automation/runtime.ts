@@ -1,24 +1,24 @@
 import { parser } from './parser';
 import { lexer } from './lexer';
 import {
-    AutomationScript,
+    type AutomationScript,
     Scope,
-    EventHandler,
-    HandlerJumpTable,
+    type EventHandler,
+    type HandlerJumpTable,
     isEventHandler,
 } from './types';
 import { estop } from './commands';
 
 import { turnoutMap } from '../index';
-import { LocoStore } from '../locos';
+import type { LocoStore } from '../locos';
 import { dbConnection } from '../database';
 import {
     AutomationType,
-    RunningAutomationClient,
-    PID,
+    type RunningAutomationClient,
+    type PID,
     AutomationStatus,
     Direction,
-    LocoIdentifier,
+    type LocoIdentifier,
     EventHandlerType,
 } from '@trainlink-org/trainlink-types';
 
@@ -29,17 +29,17 @@ import { format as sqlFormat } from 'mysql';
  * Provides the environment to store and run automations
  */
 export class Runtime {
-    private store: LocoStore;
-    private scriptsStore = new Map<number, AutomationScript>();
-    private runningScriptsStore = new Map<PID, ScriptRunner>();
-    private updateCallback: (
+    private _store: LocoStore;
+    private _scriptsStore = new Map<number, AutomationScript>();
+    private _runningScriptsStore = new Map<PID, ScriptRunner>();
+    private _updateCallback: (
         runningAutomations: RunningAutomationClient[]
     ) => void;
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    private persistentUpdateCallback = () => {};
-    private pidAllocator = new pidAllocator();
-    private persistentStore: ScriptStoreProvider = new ScriptStoreDB();
-    private eventHandlers: HandlerJumpTable = {
+    private _persistentUpdateCallback = () => {};
+    private _pidAllocator = new pidAllocator();
+    private _persistentStore: ScriptStoreProvider = new ScriptStoreDB();
+    private _eventHandlers: HandlerJumpTable = {
         turnouts: { throw: new Map(), close: new Map() },
     };
 
@@ -52,9 +52,9 @@ export class Runtime {
         store: LocoStore,
         callback: (runningAutomations: RunningAutomationClient[]) => void
     ) {
-        this.store = store;
-        this.updateCallback = callback;
-        this.loadPersistentScripts();
+        this._store = store;
+        this._updateCallback = callback;
+        this._loadPersistentScripts();
     }
 
     /**
@@ -62,19 +62,19 @@ export class Runtime {
      * @param callback The callback to be set
      */
     registerPersistentUpdateCallback(callback: () => void) {
-        this.persistentUpdateCallback = callback;
+        this._persistentUpdateCallback = callback;
     }
 
     /**
      * Loads automations from the persistent store
      */
-    private async loadPersistentScripts() {
-        const scripts = await this.persistentStore.loadScripts();
+    private async _loadPersistentScripts() {
+        const scripts = await this._persistentStore.loadScripts();
         scripts.forEach((script) => {
             if (script.eventHandlerType !== EventHandlerType.none) {
-                this.registerEventHandler(script);
+                this._registerEventHandler(script);
             }
-            this.scriptsStore.set(script.id, script);
+            this._scriptsStore.set(script.id, script);
         });
     }
 
@@ -88,10 +88,10 @@ export class Runtime {
             .then((output) => {
                 output.forEach((script) => {
                     if (script.eventHandlerType !== EventHandlerType.none) {
-                        this.registerEventHandler(script);
+                        this._registerEventHandler(script);
                     }
-                    this.scriptsStore.set(script.id, script);
-                    this.persistentStore.saveScript(script);
+                    this._scriptsStore.set(script.id, script);
+                    this._persistentStore.saveScript(script);
                 });
             });
     }
@@ -103,27 +103,27 @@ export class Runtime {
      */
     async runScript(scriptId: number, locoID?: LocoIdentifier) {
         console.log(`Running script ${scriptId}...`);
-        const script = this.scriptsStore.get(scriptId);
+        const script = this._scriptsStore.get(scriptId);
         if (script) {
             let scope: Scope;
             if (script.type === AutomationType.automation && locoID) {
-                const loco = await this.store.getLoco(locoID);
+                const loco = await this._store.getLoco(locoID);
                 scope = new Scope(turnoutMap, loco);
             } else {
                 scope = new Scope(turnoutMap);
             }
-            const pid = this.pidAllocator.newPID(script.id);
-            this.runningScriptsStore.set(
+            const pid = this._pidAllocator.newPID(script.id);
+            this._runningScriptsStore.set(
                 pid,
                 new ScriptRunner(pid, script, scope, () => {
                     console.log('Finished!');
-                    this.runningScriptsStore.delete(pid);
-                    this.updateCallback(this.getRunningAutomations());
-                    this.pidAllocator.freePID(pid);
+                    this._runningScriptsStore.delete(pid);
+                    this._updateCallback(this.getRunningAutomations());
+                    this._pidAllocator.freePID(pid);
                 })
             );
-            this.runningScriptsStore.get(pid)?.run();
-            this.updateCallback(this.getRunningAutomations());
+            this._runningScriptsStore.get(pid)?.run();
+            this._updateCallback(this.getRunningAutomations());
         }
     }
 
@@ -131,9 +131,9 @@ export class Runtime {
      * Checks if a script is an event handler and registers it if it is
      * @param script The script to register
      */
-    private registerEventHandler(script: AutomationScript) {
+    private _registerEventHandler(script: AutomationScript) {
         if (isEventHandler(script)) {
-            script.registerEventHandler(this.eventHandlers);
+            script.registerEventHandler(this._eventHandlers);
         }
     }
 
@@ -142,7 +142,7 @@ export class Runtime {
      * @returns An array of {@link AutomationScript}
      */
     getAllAutomations(): AutomationScript[] {
-        return Array.from(this.scriptsStore.values());
+        return Array.from(this._scriptsStore.values());
     }
 
     /**
@@ -150,7 +150,7 @@ export class Runtime {
      * @returns An array of {@link RunningAutomationClient}
      */
     getRunningAutomations(): RunningAutomationClient[] {
-        return Array.from(this.runningScriptsStore.values()).map((value) => {
+        return Array.from(this._runningScriptsStore.values()).map((value) => {
             if (value.loco) {
                 return {
                     name: value.script.name,
@@ -177,10 +177,10 @@ export class Runtime {
      * @param pid The PID to pause
      */
     pauseAutomation(pid: PID) {
-        const automation = this.runningScriptsStore.get(pid);
+        const automation = this._runningScriptsStore.get(pid);
         if (automation) {
             automation.pause();
-            this.updateCallback(this.getRunningAutomations());
+            this._updateCallback(this.getRunningAutomations());
         }
     }
 
@@ -189,10 +189,10 @@ export class Runtime {
      * @param pid The PID to resume
      */
     resumeAutomation(pid: PID) {
-        const automation = this.runningScriptsStore.get(pid);
+        const automation = this._runningScriptsStore.get(pid);
         if (automation) {
             automation.resume();
-            this.updateCallback(this.getRunningAutomations());
+            this._updateCallback(this.getRunningAutomations());
         }
     }
 
@@ -201,12 +201,12 @@ export class Runtime {
      * @param pid The PID to stop
      */
     stopAutomation(pid: PID) {
-        const automation = this.runningScriptsStore.get(pid);
+        const automation = this._runningScriptsStore.get(pid);
         if (automation) {
             automation.stop();
-            this.updateCallback(this.getRunningAutomations());
+            this._updateCallback(this.getRunningAutomations());
             if (automation.loco) {
-                this.store
+                this._store
                     .getLoco(automation.loco.address)
                     .then((loco) => {
                         loco.direction = Direction.stopped;
@@ -222,9 +222,9 @@ export class Runtime {
      * @param scriptID The ID of the automation to delete
      */
     deleteAutomation(scriptID: number) {
-        this.scriptsStore.delete(scriptID);
-        this.persistentStore.deleteScript(scriptID);
-        this.persistentUpdateCallback();
+        this._scriptsStore.delete(scriptID);
+        this._persistentStore.deleteScript(scriptID);
+        this._persistentUpdateCallback();
     }
 
     /**
@@ -233,11 +233,11 @@ export class Runtime {
      * @param description The new description
      */
     setDescription(scriptID: number, description: string) {
-        const script = this.scriptsStore.get(scriptID);
+        const script = this._scriptsStore.get(scriptID);
         if (script) {
             script.description = description;
-            this.persistentStore.saveScript(script);
-            this.persistentUpdateCallback();
+            this._persistentStore.saveScript(script);
+            this._persistentUpdateCallback();
         }
     }
 
@@ -253,12 +253,12 @@ export class Runtime {
         const turnoutEvent = () => {
             console.log('Turnout event');
             if (eventArray[1] === 'throw') {
-                const handlerScript = this.eventHandlers.turnouts.throw.get(
+                const handlerScript = this._eventHandlers.turnouts.throw.get(
                     Number(eventArray[2])
                 );
                 if (handlerScript) script = handlerScript;
             } else if (eventArray[1] === 'close') {
-                const handlerScript = this.eventHandlers.turnouts.close.get(
+                const handlerScript = this._eventHandlers.turnouts.close.get(
                     Number(eventArray[2])
                 );
                 if (handlerScript) script = handlerScript;
@@ -275,20 +275,20 @@ export class Runtime {
             if (script) {
                 // Create the scope
                 const scope = new Scope(turnoutMap);
-                const pid = this.pidAllocator.newPID(-1);
+                const pid = this._pidAllocator.newPID(-1);
                 // Create the ScriptRunner
-                this.runningScriptsStore.set(
+                this._runningScriptsStore.set(
                     pid,
                     new ScriptRunner(pid, script, scope, () => {
                         console.log('Finished!');
-                        this.runningScriptsStore.delete(pid);
-                        this.updateCallback(this.getRunningAutomations());
-                        this.pidAllocator.freePID(pid);
+                        this._runningScriptsStore.delete(pid);
+                        this._updateCallback(this.getRunningAutomations());
+                        this._pidAllocator.freePID(pid);
                     })
                 );
                 // Run the script
-                this.runningScriptsStore.get(pid)?.run();
-                this.updateCallback(this.getRunningAutomations());
+                this._runningScriptsStore.get(pid)?.run();
+                this._updateCallback(this.getRunningAutomations());
             }
         }
     }
@@ -298,12 +298,12 @@ export class Runtime {
  * Manages and allocates PIDs
  */
 class pidAllocator {
-    private nextPID: Map<number, number>;
-    private freedPIDs: Map<number, number[]>;
+    private _nextPID: Map<number, number>;
+    private _freedPIDs: Map<number, number[]>;
 
     constructor() {
-        this.nextPID = new Map();
-        this.freedPIDs = new Map();
+        this._nextPID = new Map();
+        this._freedPIDs = new Map();
     }
 
     /**
@@ -312,11 +312,11 @@ class pidAllocator {
      */
     freePID(pid: PID) {
         const id = Number(pid.split('#')[0]);
-        const pidArray = this.freedPIDs.get(id);
+        const pidArray = this._freedPIDs.get(id);
         if (pidArray) {
             pidArray.push(Number(pid.split('#')[1]));
         } else {
-            this.freedPIDs.set(id, [Number(pid.split('#')[1])]);
+            this._freedPIDs.set(id, [Number(pid.split('#')[1])]);
         }
     }
 
@@ -327,7 +327,7 @@ class pidAllocator {
      */
     newPID(id: number): PID {
         let newPID: number;
-        const currentFreedPIDs = this.freedPIDs.get(id);
+        const currentFreedPIDs = this._freedPIDs.get(id);
         if (currentFreedPIDs && currentFreedPIDs.length !== 0) {
             const newPIDUndef = currentFreedPIDs.shift();
             if (newPIDUndef) {
@@ -335,15 +335,15 @@ class pidAllocator {
             } else {
                 newPID = 0;
             }
-            this.freedPIDs.set(id, currentFreedPIDs);
+            this._freedPIDs.set(id, currentFreedPIDs);
         } else {
-            const nextAvalPID = this.nextPID.get(id);
+            const nextAvalPID = this._nextPID.get(id);
             if (nextAvalPID === undefined) {
                 newPID = 0;
             } else {
                 newPID = nextAvalPID;
             }
-            this.nextPID.set(id, newPID + 1);
+            this._nextPID.set(id, newPID + 1);
         }
         return `${id}#${newPID}`;
     }
@@ -354,11 +354,11 @@ class pidAllocator {
  */
 export class ScriptRunner {
     readonly script: AutomationScript;
-    private scope: Scope;
+    private _scope: Scope;
     readonly pid: PID;
-    private callback: () => void;
-    private bus = new EventEmitter();
-    private pauseTime = new Date();
+    private _callback: () => void;
+    private _bus = new EventEmitter();
+    private _pauseTime = new Date();
 
     constructor(
         pid: PID,
@@ -368,83 +368,83 @@ export class ScriptRunner {
     ) {
         this.pid = pid;
         this.script = script;
-        this.scope = scope;
-        this.callback = callback;
+        this._scope = scope;
+        this._callback = callback;
     }
 
     /**
      * Start running the automation script
      */
     async run() {
-        this.scope.running = true;
-        this.scope.bus = this.bus;
+        this._scope.running = true;
+        this._scope.bus = this._bus;
         console.log('ScriptRunner running...');
-        await this.script.execute(this.scope);
+        await this.script.execute(this._scope);
         console.log('ScriptRunner finished');
-        this.callback();
+        this._callback();
     }
 
     /**
      * Stop the automation script early
      */
     stop() {
-        this.scope.stopped = true;
-        this.callback();
+        this._scope.stopped = true;
+        this._callback();
     }
 
     /**
      * Pause the automation script
      */
     pause() {
-        this.pauseTime = new Date();
-        console.log(this.scope.currentCommand);
+        this._pauseTime = new Date();
+        console.log(this._scope.currentCommand);
         // const currentCommand = this.scope.currentCommand.map((a => {return a;}));
-        this.scope.running = false;
-        const scopeCopy = Object.assign({}, this.scope);
+        this._scope.running = false;
+        const scopeCopy = Object.assign({}, this._scope);
         scopeCopy.running = true;
         new estop().execute(scopeCopy);
         // this.scope.currentCommand = currentCommand;
-        console.log(this.scope.currentCommand);
+        console.log(this._scope.currentCommand);
     }
 
     /**
      * Resume the automation if it's paused
      */
     async resume() {
-        console.log(this.scope.currentCommand);
-        this.scope.running = true;
-        if (this.scope.currentCommand.length > 0) {
+        console.log(this._scope.currentCommand);
+        this._scope.running = true;
+        if (this._scope.currentCommand.length > 0) {
             if (
-                this.scope.currentCommand.length === 2 &&
-                this.scope.currentCommand[1].split('(')[0] === 'DELAY'
+                this._scope.currentCommand.length === 2 &&
+                this._scope.currentCommand[1].split('(')[0] === 'DELAY'
             ) {
-                console.log(this.scope.commandStartTime);
+                console.log(this._scope.commandStartTime);
                 const startSecond = Math.round(
-                    this.scope.commandStartTime[
-                        this.scope.commandStartTime.length - 2
+                    this._scope.commandStartTime[
+                        this._scope.commandStartTime.length - 2
                     ].getTime()
                 );
-                const pauseSecond = Math.round(this.pauseTime.getTime());
+                const pauseSecond = Math.round(this._pauseTime.getTime());
                 const totalSecond = Number(
-                    this.scope.currentCommand[1].split('(')[1].split(')')[0]
+                    this._scope.currentCommand[1].split('(')[1].split(')')[0]
                 );
                 console.log(
-                    this.scope.commandStartTime[
-                        this.scope.commandStartTime.length - 2
+                    this._scope.commandStartTime[
+                        this._scope.commandStartTime.length - 2
                     ]
                 );
-                console.log(this.pauseTime);
+                console.log(this._pauseTime);
                 console.log(totalSecond);
                 console.log(pauseSecond - startSecond);
 
                 const newTime = totalSecond - (pauseSecond - startSecond);
                 console.log(`Resuming with ${newTime} seconds to go`);
-                this.scope.currentCommand[1] = `DELAY(${newTime})`;
+                this._scope.currentCommand[1] = `DELAY(${newTime})`;
             }
             console.log('Parsing');
-            console.log(this.scope.currentCommand);
+            console.log(this._scope.currentCommand);
             let script = 'AUTOMATION(0)';
-            for (const command of this.scope.currentCommand) {
+            for (const command of this._scope.currentCommand) {
                 script += ` ${command}`;
             }
             script += ' DONE';
@@ -454,13 +454,13 @@ export class ScriptRunner {
                 .then((commands) => {
                     console.log('Command:');
                     console.log(commands);
-                    return commands[0].execute(this.scope);
+                    return commands[0].execute(this._scope);
                 })
                 .then(() => {
-                    this.scope.bus?.emit('running');
+                    this._scope.bus?.emit('running');
                 });
         } else {
-            this.scope.bus?.emit('running');
+            this._scope.bus?.emit('running');
         }
     }
 
@@ -468,7 +468,7 @@ export class ScriptRunner {
      * Find out if an automation is paused
      */
     get status() {
-        return this.scope.running
+        return this._scope.running
             ? AutomationStatus.running
             : AutomationStatus.paused;
     }
@@ -477,7 +477,7 @@ export class ScriptRunner {
      * Get the loco used by the automation
      */
     get loco() {
-        return this.scope.loco;
+        return this._scope.loco;
     }
 }
 

@@ -1,8 +1,8 @@
 import { store, trackPower, turnoutMap } from '../index';
-import { TurnoutPacket } from '@trainlink-org/trainlink-types';
+import type { TurnoutPacket } from '@trainlink-org/trainlink-types';
 import { log } from '../logger';
 
-import { CustomSocket } from '../socket';
+import type { CustomSocket } from '../socket';
 
 /**
  * Constructs a packet containing the current state of the locoStore

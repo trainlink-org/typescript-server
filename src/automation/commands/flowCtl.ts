@@ -1,15 +1,15 @@
-import { AutomationCommand, Scope } from '../types';
+import type { AutomationCommand, Scope } from '../types';
 
 /**
  * Implements the DELAY command
  */
 export class delay implements AutomationCommand {
-    private delayLength: number;
+    private _delayLength: number;
     params = ['number'];
     static params = ['number'];
 
     constructor(delayLength: number) {
-        this.delayLength = delayLength;
+        this._delayLength = delayLength;
     }
 
     async execute(scope: Scope): Promise<void> {
@@ -25,15 +25,15 @@ export class delay implements AutomationCommand {
         scope.commandStartTime.push(new Date());
         scope.currentCommand[1] = this.toString();
         return new Promise<void>((resolve) => {
-            console.log(`Pausing for ${this.delayLength}`);
+            console.log(`Pausing for ${this._delayLength}`);
             setTimeout(() => {
-                console.log(`Delay finished (${this.delayLength})`);
+                console.log(`Delay finished (${this._delayLength})`);
                 resolve();
-            }, this.delayLength);
+            }, this._delayLength);
         });
     }
 
     toString(): string {
-        return `DELAY(${this.delayLength})`;
+        return `DELAY(${this._delayLength})`;
     }
 }
