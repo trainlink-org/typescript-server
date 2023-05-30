@@ -6,7 +6,7 @@ import { debug } from './index';
 export enum LogLevel {
     Info,
     Warning,
-    Error
+    Error,
 }
 
 /**
@@ -17,16 +17,16 @@ export enum LogLevel {
 export function log(msg: unknown, level = LogLevel.Info) {
     if (debug) {
         switch (level) {
-        case LogLevel.Info:
-            console.log(`${msg}`);
-            break;
+            case LogLevel.Info:
+                console.log(`${msg}`);
+                break;
 
-        case LogLevel.Warning:
-            console.log(`Warning: ${msg}`);
-            break;
-        
-        case LogLevel.Error:
-            console.error(`Error: ${msg}`);
+            case LogLevel.Warning:
+                console.log(`Warning: ${msg}`);
+                break;
+
+            case LogLevel.Error:
+                console.error(`Error: ${msg}`);
         }
     }
 }

@@ -17,13 +17,19 @@ export class delay implements AutomationCommand {
             return;
         }
         if (scope.bus) {
-            if (!scope.running) await new Promise(resolve => scope.bus?.once('running', resolve));
+            if (!scope.running)
+                await new Promise((resolve) =>
+                    scope.bus?.once('running', resolve)
+                );
         }
         scope.commandStartTime.push(new Date());
         scope.currentCommand[1] = this.toString();
         return new Promise<void>((resolve) => {
             console.log(`Pausing for ${this.delayLength}`);
-            setTimeout(() => {console.log(`Delay finished (${this.delayLength})`);resolve();}, this.delayLength);
+            setTimeout(() => {
+                console.log(`Delay finished (${this.delayLength})`);
+                resolve();
+            }, this.delayLength);
         });
     }
 

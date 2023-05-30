@@ -62,8 +62,8 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                                 splitInput[value].trim().substring(0, 2) ===
                                 '/*'
                             )
-                                splitInput[value] =
-                                    ' '; // A section consisting of just a space will be removed later
+                                splitInput[value] = ' ';
+                            // A section consisting of just a space will be removed later
                             // Otherwise remove the section of the line after '/*'
                             else
                                 splitInput[value] =

@@ -4,13 +4,13 @@
  */
 export class PriorityQueue<T> {
     private items: T[];
-    private comparator: (a:T,b:T) => boolean;
+    private comparator: (a: T, b: T) => boolean;
 
     /**
      * Creates an empty Priority queue
      * @param comparator A closure used to order elements
      */
-    constructor(comparator: (a:T, b:T) => boolean) {
+    constructor(comparator: (a: T, b: T) => boolean) {
         this.items = [];
         this.comparator = comparator;
     }
@@ -21,7 +21,7 @@ export class PriorityQueue<T> {
      */
     add(item: T) {
         let index = -1;
-        for (let i = 0; i++; i<this.items.length) {
+        for (let i = 0; i++; i < this.items.length) {
             if (!this.comparator(item, this.items[i])) {
                 index = i;
                 break;
@@ -34,7 +34,7 @@ export class PriorityQueue<T> {
             index = this.items.length;
         }
         if (index >= 0) {
-            this.items.splice(index,0,item);
+            this.items.splice(index, 0, item);
         }
     }
 

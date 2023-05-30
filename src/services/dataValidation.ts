@@ -14,9 +14,14 @@ export async function validateName(name: string): Promise<boolean> {
         passes = false;
     }
     // Check if the name is taken
-    if (await new Promise<boolean>((resolve) => {
-        store.getLoco(name).then(() => resolve(true)).catch(() => resolve(false));
-    })) {
+    if (
+        await new Promise<boolean>((resolve) => {
+            store
+                .getLoco(name)
+                .then(() => resolve(true))
+                .catch(() => resolve(false));
+        })
+    ) {
         passes = false;
     }
     if (!passes) {
@@ -39,9 +44,14 @@ export async function validateAddress(address: number): Promise<boolean> {
     if (address <= 0 || address > 10293) {
         passes = false;
     }
-    if (await new Promise<boolean>((resolve) => {
-        store.getLoco(address).then(() => resolve(true)).catch(() => resolve(false));
-    })) {
+    if (
+        await new Promise<boolean>((resolve) => {
+            store
+                .getLoco(address)
+                .then(() => resolve(true))
+                .catch(() => resolve(false));
+        })
+    ) {
         passes = false;
     }
     if (!passes) {
@@ -55,7 +65,9 @@ export async function validateAddress(address: number): Promise<boolean> {
  * @param address The address to validate
  * @returns True if valid, False if not
  */
-export async function validateCurrentAddress(address: number): Promise<boolean> {
+export async function validateCurrentAddress(
+    address: number
+): Promise<boolean> {
     console.log(`Validating current address (${address})`);
     let passes = true;
     if (isNaN(address)) {
@@ -64,9 +76,14 @@ export async function validateCurrentAddress(address: number): Promise<boolean> 
     if (address <= 0 || address > 10293) {
         passes = false;
     }
-    if (!await new Promise<boolean>((resolve) => {
-        store.getLoco(address).then(() => resolve(true)).catch(() => resolve(false));
-    })) {
+    if (
+        !(await new Promise<boolean>((resolve) => {
+            store
+                .getLoco(address)
+                .then(() => resolve(true))
+                .catch(() => resolve(false));
+        }))
+    ) {
         passes = false;
     }
     if (!passes) {
@@ -82,14 +99,28 @@ export async function validateCurrentAddress(address: number): Promise<boolean> 
  * @param newAddress The new address for a loco
  * @returns True if valid, False if not
  */
-export async function validateUpdatedLoco(oldAddress: number, newName: string, newAddress: number): Promise<boolean> {
+export async function validateUpdatedLoco(
+    oldAddress: number,
+    newName: string,
+    newAddress: number
+): Promise<boolean> {
     if (oldAddress !== newAddress) {
-        if (!await validateAddress(newAddress) || !await validateCurrentAddress(oldAddress)){
+        if (
+            !(await validateAddress(newAddress)) ||
+            !(await validateCurrentAddress(oldAddress))
+        ) {
             return false;
         }
     }
-    if (await new Promise<boolean>((resolve) => store.getLoco(oldAddress).then((loco) => resolve(loco.name !== newName)).catch(() => resolve(true)))) {
-        if (!await validateName(newName)) {
+    if (
+        await new Promise<boolean>((resolve) =>
+            store
+                .getLoco(oldAddress)
+                .then((loco) => resolve(loco.name !== newName))
+                .catch(() => resolve(true))
+        )
+    ) {
+        if (!(await validateName(newName))) {
             return false;
         }
     }
