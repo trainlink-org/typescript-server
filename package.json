@@ -2,7 +2,11 @@
   "name": "@trainlink-org/typescript-server",
   "version": "0.0.0-alpha.0",
   "description": "A TrainLink server implementation written in Typescript",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
+  "files": [
+    "src",
+    "dist/src/"
+  ],
   "scripts": {
     "test": "jest",
     "docs": "typedoc",
@@ -10,8 +14,16 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "start": "node dist/src/server.js"
   },
+  "keywords": [
+    "trainlink",
+    "trainlink-api",
+    "dcc",
+    "dcc-ex",
+    "railway"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trainlink-org/typescript-server.git"

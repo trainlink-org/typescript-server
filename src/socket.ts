@@ -29,7 +29,7 @@ export type SocketIoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
 export let userCount = 0;
 
-export function startServer(portString: string | undefined) {
+export function startSocketServer(portString: string | undefined) {
     const port = validateEnvInt(portString, 3001);
 
     // Creates a new socket.io server

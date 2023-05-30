@@ -1,12 +1,14 @@
 import { LocoStore } from './locos';
 import { AutomationRuntime } from './automation';
 import { dbConnection } from './database';
-import { io, startServer } from './socket';
+import { io, startSocketServer } from './socket';
 import { SocketHardwareAdapter } from './adapter';
 import { TurnoutMap } from './turnouts';
 
-dbConnection.connect();
-startServer(process.env.NODE_DOCKER_PORT);
+export function startServer() {
+    dbConnection.connect();
+    startSocketServer(process.env.NODE_DOCKER_PORT);
+}
 
 const environment = process.env.NODE_ENV;
 export const isDebug = environment === 'development';
