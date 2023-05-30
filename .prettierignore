@@ -1,0 +1,6 @@
+.github
+dist
+docs
+
+tsconfig.json
+package-lock.json
