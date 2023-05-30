@@ -1,0 +1,28 @@
+name: Unit tests
+on: 
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Node 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm install
+      - name: Install dev version of trainlink-types
+        run: npm install https://github.com/trainlink-org/trainlink-types
+      - name: Install dev version of shared-lib
+        run: npm install https://github.com/trainlink-org/shared-lib
+      - name: Run tests and collect coverage
+        run: npm run test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3

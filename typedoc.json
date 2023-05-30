@@ -1,0 +1,12 @@
+{
+  "entryPoints": ["src/**/*.ts"],
+  "plugin": ["typedoc-plugin-missing-exports"],
+  "excludeExternals": true,
+  "excludeReferences": true,
+  "includeVersion": true,
+  "name": "TrainLink Server",
+  "navigationLinks": {
+    "Types": "https://trainlink-org.github.io/trainlink-types",
+    "Library": "https://trainlink-org.github.io/shared-lib"
+  }
+}

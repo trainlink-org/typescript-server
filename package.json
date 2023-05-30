@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
+    "docs": "typedoc",
     "build": "tsc --module commonjs",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -35,6 +36,7 @@
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.1",
     "typedoc": "^0.24.7",
+    "typedoc-plugin-missing-exports": "^2.0.0",
     "typescript": "^5.0.4"
   },
   "dependencies": {

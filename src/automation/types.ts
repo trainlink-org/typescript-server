@@ -199,7 +199,7 @@ export interface HandlerJumpTable {
 }
 
 /**
- * Checks if an object has the correct properties to be a {@link Turnout}
+ * Checks if an object has the correct properties to be a {@link EventHandler}
  * @param object Object to check
  * @returns True or false
  */

@@ -1,0 +1,22 @@
+name: Prettier
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  prettier:
+    name: Run prettier check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v2 # Check out the repository first.
+      - uses: actionsx/prettier@v2
+        with:
+          # prettier CLI arguments.
+          args: --check .

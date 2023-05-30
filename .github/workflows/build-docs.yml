@@ -1,0 +1,36 @@
+name: Build Documentation
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Install dependancies
+        run: npm install
+
+      - name: Build source
+        run: npm run build
+
+      - name: Build documentation
+        run: npm run docs
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Build Documentation
+          commit_options: --gpg-sign
+          commit_user_email: matthew.vandevyver@outlook.com
