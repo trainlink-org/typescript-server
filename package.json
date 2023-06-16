@@ -59,6 +59,6 @@
     "mysql": "^2.18.1",
     "nodemon": "^2.0.22",
     "socket.io": "^4.6.1",
-    "socket.io-client": "^4.6.1"
+    "socket.io-client": "^4.6.2"
   }
 }
