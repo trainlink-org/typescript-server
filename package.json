@@ -55,7 +55,7 @@
   "dependencies": {
     "@trainlink-org/shared-lib": "^0.0.1-alpha.1",
     "@trainlink-org/trainlink-types": "^0.0.1-alpha.3",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.2.0",
     "mysql": "^2.18.1",
     "nodemon": "^2.0.22",
     "socket.io": "^4.6.1",
