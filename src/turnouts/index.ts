@@ -88,15 +88,7 @@ export class TurnoutMap {
             await findPath(start, end, this._turnoutGraph)
                 .then(
                     (path): Promise<RouteObject> =>
-                        pathToTurnouts(
-                            path,
-                            this.getDestination,
-                            // this.getDestinations,
-                            this.getTurnout,
-                            // this.getTurnouts,
-                            this.getLink,
-                            this._turnoutGraph
-                        )
+                        pathToTurnouts(path, this, this._turnoutGraph)
                 )
                 .then((path) => {
                     this._clearRoute(path);
