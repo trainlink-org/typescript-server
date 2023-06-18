@@ -13,6 +13,7 @@ import sqlite3 from 'sqlite3';
 import { type Database, open } from 'sqlite';
 import { LogLevel, log } from './logger';
 import { version } from '.';
+import semver, { Range, SemVer } from 'semver';
 
 // this is a top-level await
 // open the database
@@ -201,31 +202,20 @@ function checkVersion(dbConnection: Database): Promise<void> {
         dbConnection
             .get<Row>("SELECT value FROM systemConfig WHERE key = 'version'")
             .then((result) => {
+                const dbVersion =
+                    semver.parse(result?.value) || new SemVer('0.0.0');
+                // if (
+                //     result?.value.split('.')[0] !==
+                //     version.version.toString().split('.')[0]
+                // ) {
                 if (
-                    result?.value.split('.')[0] !==
-                    version.version.toString().split('.')[0]
+                    !semver.satisfies(
+                        version,
+                        new Range(`~${dbVersion.version}`)
+                    )
                 ) {
                     log(
-                        `Incompatible database version (database version is ${
-                            result?.value
-                        }, needs to be ${
-                            version.version.toString().split('.')[0]
-                        }.X.X)`,
-                        LogLevel.Error,
-                        true
-                    );
-                    throw 'Incompatible database version';
-                } else if (
-                    result?.value.split('.')[0] === '0' &&
-                    result.value.split('.')[1] !==
-                        version.version.toString().split('.')[1]
-                ) {
-                    log(
-                        `Incompatible database version (database version is ${
-                            result?.value
-                        }, needs to be ${
-                            version.version.toString().split('.')[0]
-                        }.${version.version.toString().split('.')[1]}.X)`,
+                        `Incompatible database version (database version is ${dbVersion.version}, needs to be ${version.major}.${version.minor}.X)`,
                         LogLevel.Error,
                         true
                     );

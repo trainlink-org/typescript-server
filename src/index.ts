@@ -5,11 +5,9 @@ import { DummyHardwareAdapter, SocketHardwareAdapter } from './adapter';
 import { TurnoutMap } from './turnouts';
 import { setupDB } from './database';
 import { log } from './logger';
+import semver, { SemVer } from 'semver';
 
 export async function startServer(serverConfig: ServerConfig) {
-    if (serverConfig.productName) {
-        version.name = serverConfig.productName;
-    }
     // Create the new hardware adapter
     const adapter = new DummyHardwareAdapter();
 
@@ -47,14 +45,23 @@ export async function startServer(serverConfig: ServerConfig) {
 
 const environment = process.env.NODE_ENV;
 export const isDebug = environment === 'development';
-export const version = {
-    name: process.env.npm_package_name?.replace('-', ' ') || 'Default server',
-    version: process.env.npm_package_version || '0.0.0',
-};
+// export const version = {
+//     name: process.env.npm_package_name?.replace('-', ' ') || 'Default server',
+//     // version: process.env.npm_package_version || '0.0.0',
+//     // major: parseInt(process.env.npm_package_version?.split('.')[0] || '0'),
+//     // minor: parseInt(process.env.npm_package_version?.split('.')[1] || '0'),
+//     // patch: parseInt(process.env.npm_package_version?.split('.')[2] || '0'),
+//     // tag: process.env.npm_package_version?.split('-').
+//     major: semver.major(process.env.npm_package_name || '0.0.0'),
+//     minor: semver.minor(process.env.npm_package_name || '0.0.0'),
+//     semver: semver.parse(process.env.npm_package_name || '0.0.0'),
+// };
+export const version =
+    semver.parse(process.env.npm_package_version) || new SemVer('0.0.0');
 
-if (isDebug) {
-    version.version += ' (Dev)';
-}
+// if (isDebug) {
+//     version.version += ' (Dev)';
+// }
 
 export const trackPower = { state: false };
 
@@ -65,5 +72,5 @@ export interface ServerConfig {
     port: number;
     dbName?: string;
     logPath?: string;
-    productName?: string;
+    productName: string;
 }

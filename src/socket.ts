@@ -26,6 +26,8 @@ import type { Runtime } from './automation/runtime';
 import type { TurnoutMap } from './turnouts';
 import type { LocoStore } from './locos';
 
+import semver, { Range, SemVer } from 'semver';
+
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -57,18 +59,20 @@ export function startSocketServer(
     io.on('connection', (socket) => {
         socket.on('metadata/handshake', (_name, version) => {
             socket.data.version = version;
-            // Check the clients version is compatible with the server
-            const versionString: string = version.toString();
+            const versionString = semver.parse(version) || new SemVer('0.0.0');
             if (
-                versionString.split('.')[0] ===
-                serverVersion.version?.split('.')[0]
+                semver.satisfies(
+                    versionString,
+                    new Range(`${serverVersion.major}.${serverVersion.minor}.x`)
+                )
             ) {
                 // Client is compatible
                 userCount += 1;
                 log(`A user connected (${userCount} in total)`);
                 socket.emit(
                     'metadata/handshake',
-                    serverVersion.name,
+                    // serverVersion.name,
+                    serverConfig.productName,
                     serverVersion.version
                 );
                 statusHandler.sendLocoState(socket, store);
@@ -77,7 +81,7 @@ export function startSocketServer(
                 statusHandler.sendTrackState(socket);
             } else {
                 // Client incompatible so disconnect
-                socket.disconnect();
+                socket.disconnect(true);
             }
         });
 
