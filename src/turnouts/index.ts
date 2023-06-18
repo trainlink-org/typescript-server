@@ -1,7 +1,7 @@
 import { TurnoutGraph } from './graph';
 import { findPath, pathToTurnouts } from './routeFinder';
 
-import { adapter, runtime } from '../index';
+// import { adapter, runtime } from '../index';
 import {
     type Destination,
     type Turnout,
@@ -9,12 +9,15 @@ import {
     type RouteObject,
     type Coordinate,
     TurnoutState,
-} from '@trainlink-org/trainlink-types';
+    type HardwareAdapter,
+} from '@trainlink-org/shared-lib';
 import { io } from '../socket';
-import { dbConnection } from '../database';
+// import { dbConnection } from '../database';
 
 import type { Socket } from 'socket.io';
-import { format as sqlFormat } from 'mysql';
+import type { Runtime } from '../automation/runtime';
+import type { Database } from 'sqlite';
+// import { format as sqlFormat } from 'mysql';
 
 type turnoutId = number;
 
@@ -28,6 +31,18 @@ export class TurnoutMap {
     private _usedTurnouts: Map<number, number> = new Map();
     private _activeRoutes: Map<number, RouteObject> = new Map();
     private _routeIdAllocator: routeIdAllocator = new routeIdAllocator();
+    private _dbConnection: Database;
+    private _adapter: HardwareAdapter;
+    private _runtime: Runtime | undefined;
+
+    constructor(dbConnection: Database, adapter: HardwareAdapter) {
+        this._dbConnection = dbConnection;
+        this._adapter = adapter;
+    }
+
+    attachRuntime(runtime: Runtime) {
+        this._runtime = runtime;
+    }
 
     /**
      * Set a turnout's state
@@ -45,21 +60,19 @@ export class TurnoutMap {
             }
             // Set the state, update all clients and send it to the hardware adapter
             turnout.state = state;
-            runtime.triggerEvent(
+            this._runtime?.triggerEvent(
                 `turnout/${
                     state === TurnoutState.closed ? 'close' : 'throw'
                 }/${id}`
             );
             io.emit('routes/turnoutUpdate', turnout.id, turnout.state);
             //TODO implement error handling
-            void adapter.turnoutSet(turnout.id, turnout.state);
+            void this._adapter.turnoutSet(turnout.id, turnout.state);
             // eslint-disable-next-line @typescript-eslint/naming-convention
             const turnoutState = turnout.state === TurnoutState.thrown;
             const query = 'UPDATE turnouts SET state = ? WHERE idturnouts = ?';
             const inserts = [turnoutState, id];
-            dbConnection.query(sqlFormat(query, inserts), (error) => {
-                if (error) throw error;
-            });
+            await this._dbConnection.run(query, inserts);
         }
     }
 
@@ -73,16 +86,17 @@ export class TurnoutMap {
         const end = await this.getDestination(endID);
         if (start && end) {
             await findPath(start, end, this._turnoutGraph)
-                .then((path) =>
-                    pathToTurnouts(
-                        path,
-                        this.getDestination,
-                        // this.getDestinations,
-                        this.getTurnout,
-                        // this.getTurnouts,
-                        this.getLink,
-                        this._turnoutGraph
-                    )
+                .then(
+                    (path): Promise<RouteObject> =>
+                        pathToTurnouts(
+                            path,
+                            this.getDestination,
+                            // this.getDestinations,
+                            this.getTurnout,
+                            // this.getTurnouts,
+                            this.getLink,
+                            this._turnoutGraph
+                        )
                 )
                 .then((path) => {
                     this._clearRoute(path);
@@ -95,26 +109,21 @@ export class TurnoutMap {
                             turnout.state !== newTurnoutState.state
                         ) {
                             turnout.state = newTurnoutState.state;
-                            runtime.triggerEvent(
+                            this._runtime?.triggerEvent(
                                 `turnout/${
                                     turnout.state === TurnoutState.closed
                                         ? 'close'
                                         : 'throw'
                                 }/${turnout.id}`
                             );
-                            adapter.turnoutSet(turnout.id, turnout.state);
+                            this._adapter.turnoutSet(turnout.id, turnout.state);
                             // eslint-disable-next-line @typescript-eslint/naming-convention
                             const turnoutState =
                                 turnout.state === TurnoutState.thrown;
                             const query =
                                 'UPDATE turnouts SET state = ? WHERE idturnouts = ?';
                             const inserts = [turnoutState, turnout.id];
-                            dbConnection.query(
-                                sqlFormat(query, inserts),
-                                (error) => {
-                                    if (error) throw error;
-                                }
-                            );
+                            await this._dbConnection.run(query, inserts);
                         }
                     });
                     const routeID = this._routeIdAllocator.newRouteID();
@@ -235,10 +244,9 @@ export class TurnoutMap {
                 state: boolean;
                 coordinate: string;
             }[];
-            dbConnection.query(
-                'SELECT * FROM turnouts;',
-                (error, results: Results) => {
-                    if (error) throw error;
+            this._dbConnection
+                .all('SELECT * FROM turnouts;')
+                .then((results: Results) => {
                     const turnouts: Turnout[] = results.map((value) => {
                         return {
                             id: value.idturnouts,
@@ -253,8 +261,7 @@ export class TurnoutMap {
                         };
                     });
                     resolve(turnouts);
-                }
-            );
+                });
         }).then((turnouts) => {
             turnouts.forEach((turnout) => {
                 const sql =
@@ -263,15 +270,13 @@ export class TurnoutMap {
                 type Results = {
                     idturnoutLinks: number;
                 }[];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results: Results) => {
-                        if (error) throw error;
+                this._dbConnection
+                    .all(sql, inserts)
+                    .then((results: Results) => {
                         results.forEach((result) => {
                             turnout.connections.push(result.idturnoutLinks);
                         });
-                    }
-                );
+                    });
             });
             return turnouts;
         });
@@ -291,10 +296,9 @@ export class TurnoutMap {
                 end: number | null;
                 points: string;
             }[];
-            dbConnection.query(
-                'SELECT * FROM turnoutLinks;',
-                (error, results: Results) => {
-                    if (error) throw error;
+            this._dbConnection
+                .all('SELECT * FROM turnoutLinks;')
+                .then((results: Results) => {
                     const turnoutLinks: TurnoutLink[] = results.map((value) => {
                         return {
                             id: value.idturnoutLinks,
@@ -307,8 +311,7 @@ export class TurnoutMap {
                         };
                     });
                     resolve(turnoutLinks);
-                }
-            );
+                });
         });
     }
 
@@ -324,24 +327,20 @@ export class TurnoutMap {
             }[];
             const sql = 'SELECT * FROM turnoutLinks WHERE idturnoutlinks = ?;';
             const inserts = [id];
-            dbConnection.query(
-                sqlFormat(sql, inserts),
-                (error, results: Results) => {
-                    if (error) throw error;
-                    const turnoutLinks: TurnoutLink[] = results.map((value) => {
-                        return {
-                            id: value.idturnoutLinks,
-                            length: value.length,
-                            start: value.start_dest || value.start || 0,
-                            end: value.end || 0,
-                            points: JSON.parse(value.points),
-                            startActive: false,
-                            endActive: false,
-                        };
-                    });
-                    resolve(turnoutLinks[0]);
-                }
-            );
+            this._dbConnection.all(sql, inserts).then((results: Results) => {
+                const turnoutLinks: TurnoutLink[] = results.map((value) => {
+                    return {
+                        id: value.idturnoutLinks,
+                        length: value.length,
+                        start: value.start_dest || value.start || 0,
+                        end: value.end || 0,
+                        points: JSON.parse(value.points),
+                        startActive: false,
+                        endActive: false,
+                    };
+                });
+                resolve(turnoutLinks[0]);
+            });
         });
     }
 
@@ -357,10 +356,9 @@ export class TurnoutMap {
                 description: string | null;
                 coordinate: string;
             }[];
-            dbConnection.query(
-                'SELECT * FROM destinations;',
-                (error, results: Results) => {
-                    if (error) throw error;
+            this._dbConnection
+                .all('SELECT * FROM destinations;')
+                .then((results: Results) => {
                     const destinations: Destination[] = results.map((value) => {
                         return {
                             id: value.iddestinations,
@@ -372,8 +370,7 @@ export class TurnoutMap {
                         };
                     });
                     resolve(destinations);
-                }
-            );
+                });
         }).then((destinations) => {
             destinations.forEach((destination) => {
                 const sql =
@@ -382,15 +379,13 @@ export class TurnoutMap {
                 type Results = {
                     idturnoutLinks: number;
                 }[];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results: Results) => {
-                        if (error) throw error;
+                this._dbConnection
+                    .all(sql, inserts)
+                    .then((results: Results) => {
                         results.forEach((result) => {
                             destination.connections.push(result.idturnoutLinks);
                         });
-                    }
-                );
+                    });
             });
             return destinations;
         });
@@ -406,24 +401,20 @@ export class TurnoutMap {
             }[];
             const sql = 'SELECT * FROM destinations WHERE iddestinations = ?';
             const inserts = [id];
-            dbConnection.query(
-                sqlFormat(sql, inserts),
-                (error, results: Results) => {
-                    if (error) throw error;
-                    // console.log(results);
-                    const destinations: Destination[] = results.map((value) => {
-                        return {
-                            id: value.iddestinations,
-                            name: value.name || '',
-                            description: value.description || '',
-                            state: TurnoutState.closed,
-                            coordinate: JSON.parse(value.coordinate),
-                            connections: [],
-                        };
-                    });
-                    resolve(destinations[0]);
-                }
-            );
+            this._dbConnection.all(sql, inserts).then((results: Results) => {
+                // console.log(results);
+                const destinations: Destination[] = results.map((value) => {
+                    return {
+                        id: value.iddestinations,
+                        name: value.name || '',
+                        description: value.description || '',
+                        state: TurnoutState.closed,
+                        coordinate: JSON.parse(value.coordinate),
+                        connections: [],
+                    };
+                });
+                resolve(destinations[0]);
+            });
         }).then((destination) => {
             if (destination) {
                 const sql =
@@ -432,15 +423,13 @@ export class TurnoutMap {
                 type Results = {
                     idturnoutLinks: number;
                 }[];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results: Results) => {
-                        if (error) throw error;
+                this._dbConnection
+                    .all(sql, inserts)
+                    .then((results: Results) => {
                         results.forEach((result) => {
                             destination.connections.push(result.idturnoutLinks);
                         });
-                    }
-                );
+                    });
             }
             return destination;
         });
@@ -480,10 +469,9 @@ export class TurnoutMap {
                         end: number | null;
                         points: string;
                     }[];
-                    dbConnection.query(
-                        'SELECT * FROM turnoutLinks',
-                        (error, results: results) => {
-                            if (error) throw error;
+                    this._dbConnection
+                        .all('SELECT * FROM turnoutLinks')
+                        .then((results: results) => {
                             const turnoutLinks: TurnoutLink[] = results.map(
                                 (value) => {
                                     return {
@@ -504,8 +492,7 @@ export class TurnoutMap {
                                 this._addTurnoutLinkGraph(value);
                             });
                             resolve();
-                        }
-                    );
+                        });
                 });
             })
             .then(async () => {
@@ -537,10 +524,7 @@ export class TurnoutMap {
             const sql =
                 'UPDATE turnouts SET coordinate = ? WHERE idturnouts = ?';
             const inserts = [JSON.stringify(coord), turnoutId];
-            dbConnection.query(sqlFormat(sql, inserts), (error) => {
-                if (error) throw error;
-                resolve();
-            });
+            this._dbConnection.run(sql, inserts).then(() => resolve());
         });
     }
 
@@ -586,26 +570,22 @@ export class TurnoutMap {
             }[];
             const sql = 'SELECT * FROM turnouts WHERE idturnouts = ?';
             const inserts = [id];
-            dbConnection.query(
-                sqlFormat(sql, inserts),
-                (error, results: Results) => {
-                    if (error) throw error;
-                    const turnouts: Turnout[] = results.map((value) => {
-                        return {
-                            id: value.idturnouts,
-                            name: value.name || '',
-                            primaryDirection: value.primary_direction || 0,
-                            secondaryDirection: value.secondary_direction || 0,
-                            state: value.state
-                                ? TurnoutState.thrown
-                                : TurnoutState.closed,
-                            coordinate: JSON.parse(value.coordinate),
-                            connections: [],
-                        };
-                    });
-                    resolve(turnouts[0]);
-                }
-            );
+            this._dbConnection.all(sql, inserts).then((results: Results) => {
+                const turnouts: Turnout[] = results.map((value) => {
+                    return {
+                        id: value.idturnouts,
+                        name: value.name || '',
+                        primaryDirection: value.primary_direction || 0,
+                        secondaryDirection: value.secondary_direction || 0,
+                        state: value.state
+                            ? TurnoutState.thrown
+                            : TurnoutState.closed,
+                        coordinate: JSON.parse(value.coordinate),
+                        connections: [],
+                    };
+                });
+                resolve(turnouts[0]);
+            });
         }).then((turnout) => {
             if (turnout) {
                 const sql =
@@ -614,15 +594,13 @@ export class TurnoutMap {
                 type Results = {
                     idturnoutLinks: number;
                 }[];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results: Results) => {
-                        if (error) throw error;
+                this._dbConnection
+                    .all(sql, inserts)
+                    .then((results: Results) => {
                         results.forEach((result) => {
                             turnout.connections.push(result.idturnoutLinks);
                         });
-                    }
-                );
+                    });
             }
             return turnout;
         });

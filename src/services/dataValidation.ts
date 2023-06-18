@@ -1,11 +1,16 @@
-import { store } from '../index';
+// import { store } from '../index';
+
+import type { LocoStore } from '../locos';
 
 /**
  * Validates if a new loco name is valid
  * @param name The name to validate
  * @returns True if valid, False if not
  */
-export async function validateName(name: string): Promise<boolean> {
+export async function validateName(
+    name: string,
+    store: LocoStore
+): Promise<boolean> {
     console.log(`Validating name (${name})`);
     // Start by assuming input is valid, set to invalid if it fails a condition
     let isCorrect = true;
@@ -35,7 +40,10 @@ export async function validateName(name: string): Promise<boolean> {
  * @param address The address to validate
  * @returns True if valid, False if not
  */
-export async function validateAddress(address: number): Promise<boolean> {
+export async function validateAddress(
+    address: number,
+    store: LocoStore
+): Promise<boolean> {
     console.log(`Validating address (${address})`);
     let isCorrect = true;
     if (isNaN(address)) {
@@ -66,7 +74,8 @@ export async function validateAddress(address: number): Promise<boolean> {
  * @returns True if valid, False if not
  */
 export async function validateCurrentAddress(
-    address: number
+    address: number,
+    store: LocoStore
 ): Promise<boolean> {
     console.log(`Validating current address (${address})`);
     let isCorrect = true;
@@ -102,12 +111,13 @@ export async function validateCurrentAddress(
 export async function validateUpdatedLoco(
     oldAddress: number,
     newName: string,
-    newAddress: number
+    newAddress: number,
+    store: LocoStore
 ): Promise<boolean> {
     if (oldAddress !== newAddress) {
         if (
-            !(await validateAddress(newAddress)) ||
-            !(await validateCurrentAddress(oldAddress))
+            !(await validateAddress(newAddress, store)) ||
+            !(await validateCurrentAddress(oldAddress, store))
         ) {
             return false;
         }
@@ -120,7 +130,7 @@ export async function validateUpdatedLoco(
                 .catch(() => resolve(true))
         )
     ) {
-        if (!(await validateName(newName))) {
+        if (!(await validateName(newName, store))) {
             return false;
         }
     }

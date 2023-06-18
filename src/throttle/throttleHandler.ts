@@ -1,11 +1,12 @@
-import { adapter, store, trackPower } from '../index';
+import { trackPower } from '../index';
 import {
     Direction,
     type LocoIdentifier,
     type ServerToClientEvents,
     type ClientToServerEvents,
-} from '@trainlink-org/trainlink-types';
-import { SyncLevel } from '../locos';
+    type HardwareAdapter,
+} from '@trainlink-org/shared-lib';
+import { type LocoStore, SyncLevel } from '../locos';
 import type { SocketIoServer } from '../socket';
 
 import type { Server, Socket } from 'socket.io';
@@ -22,7 +23,8 @@ export function speedChange(
     speed: number,
     throttleID: number,
     io: Server<ClientToServerEvents, ServerToClientEvents>,
-    socket: Socket
+    socket: Socket,
+    store: LocoStore
 ) {
     store
         .getLoco(identifier, SyncLevel.SerialOnly)
@@ -36,7 +38,11 @@ export function speedChange(
  * @param identifier The identifier of the loco
  * @param io The socket.io server object to update other clients
  */
-export function changeDirection(identifier: LocoIdentifier, io: Server) {
+export function changeDirection(
+    identifier: LocoIdentifier,
+    io: Server,
+    store: LocoStore
+) {
     store
         .getLoco(identifier)
         .then((loco) => {
@@ -65,7 +71,8 @@ export function setDirection(
     identifier: LocoIdentifier,
     direction: Direction,
     io: Server<ClientToServerEvents, ServerToClientEvents>,
-    socket: Socket
+    socket: Socket,
+    store: LocoStore
 ) {
     store
         .getLoco(identifier)
@@ -93,7 +100,8 @@ export function setFunction(
     identifier: LocoIdentifier,
     functionNum: number,
     state: boolean,
-    io: SocketIoServer
+    io: SocketIoServer,
+    store: LocoStore
 ) {
     store
         .getLoco(identifier)
@@ -113,7 +121,8 @@ export function setFunction(
 export function setTrackPower(
     state: boolean,
     io: SocketIoServer,
-    socket: Socket
+    socket: Socket,
+    adapter: HardwareAdapter
 ) {
     adapter.trackPowerSet(state);
     trackPower.state = state;

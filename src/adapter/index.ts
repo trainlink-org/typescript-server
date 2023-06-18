@@ -3,7 +3,7 @@ import {
     Direction,
     TurnoutState,
     type HardwareAdapter,
-} from '@trainlink-org/trainlink-types';
+} from '@trainlink-org/shared-lib';
 import { resolve } from 'path';
 
 import { io, type Socket } from 'socket.io-client';
