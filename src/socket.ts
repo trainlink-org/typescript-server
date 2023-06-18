@@ -1,5 +1,5 @@
 // import { version as serverVersion, runtime, turnoutMap } from './index';
-import { version as serverVersion } from './index';
+import { type ServerConfig, version as serverVersion } from './index';
 import {
     type ServerToClientEvents,
     type ClientToServerEvents,
@@ -36,7 +36,7 @@ export let userCount = 0;
 
 export function startSocketServer(
     // portString: string | undefined,
-    port: number,
+    serverConfig: ServerConfig,
     store: LocoStore,
     runtime: Runtime,
     turnoutMap: TurnoutMap,
@@ -45,12 +45,15 @@ export function startSocketServer(
     // const port = validateEnvInt(portString, 6868);
 
     // Creates a new socket.io server
-    io = new Server<ClientToServerEvents, ServerToClientEvents>(port, {
-        cors: {
-            // origin: '*',
-            origin: true,
-        },
-    });
+    io = new Server<ClientToServerEvents, ServerToClientEvents>(
+        serverConfig.port,
+        {
+            cors: {
+                // origin: '*',
+                origin: true,
+            },
+        }
+    );
     io.on('connection', (socket) => {
         socket.on('metadata/handshake', (_name, version) => {
             socket.data.version = version;
@@ -212,7 +215,7 @@ export function startSocketServer(
             }
         );
     });
-    log('\nListening on port %d', port);
+    log('\nListening on port %d', serverConfig.port);
 }
 
 function validateEnvInt(port: string | undefined, fallback: number) {

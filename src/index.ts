@@ -1,15 +1,15 @@
 import { LocoStore } from './locos';
 import { AutomationRuntime } from './automation';
-// import { dbConnection } from './database';
 import { io, startSocketServer } from './socket';
 import { DummyHardwareAdapter, SocketHardwareAdapter } from './adapter';
 import { TurnoutMap } from './turnouts';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import { env } from 'node:process';
 import { setupDB } from './database';
+import { log } from './logger';
 
 export async function startServer(serverConfig: ServerConfig) {
+    if (serverConfig.productName) {
+        version.name = serverConfig.productName;
+    }
     // Create the new hardware adapter
     const adapter = new DummyHardwareAdapter();
 
@@ -21,7 +21,7 @@ export async function startServer(serverConfig: ServerConfig) {
     // Create the LocoStore
     const store = new LocoStore(dbConnection, adapter);
     await store.loadSave();
-    console.log(store.toString());
+    log(store.toString());
 
     // Create an automation runtime
     const turnoutMap = new TurnoutMap(dbConnection, adapter);
@@ -42,7 +42,7 @@ export async function startServer(serverConfig: ServerConfig) {
     turnoutMap.loadTurnoutMap();
     runtime.loadPersistentScripts();
     // Starts the Socket.IO server
-    startSocketServer(serverConfig.port, store, runtime, turnoutMap, adapter);
+    startSocketServer(serverConfig, store, runtime, turnoutMap, adapter);
 }
 
 const environment = process.env.NODE_ENV;
@@ -56,16 +56,6 @@ if (isDebug) {
     version.version += ' (Dev)';
 }
 
-// export const store = new LocoStore();
-// export const runtime = new AutomationRuntime(store, (runningAutomations) => {
-//     io.emit('automation/fetchRunningResponse', runningAutomations);
-// });
-// runtime.registerPersistentUpdateCallback(() => {
-//     const automationList = runtime.getAllAutomations();
-//     console.log(automationList);
-//     io.emit('automation/fetchAllResponse', automationList);
-// });
-
 export const trackPower = { state: false };
 
 // export const turnoutMap = new TurnoutMap();
@@ -75,4 +65,5 @@ export interface ServerConfig {
     port: number;
     dbName?: string;
     logPath?: string;
+    productName?: string;
 }
