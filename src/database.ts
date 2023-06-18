@@ -1,36 +1,21 @@
-// import { createConnection } from 'mysql';
-
-// /**
-//  * A connection to the database to run queries
-//  */
-// export const dbConnection = createConnection({
-//     host: 'db',
-//     user: process.env.MYSQLDB_USER,
-//     password: process.env.MYSQLDB_PASSWORD,
-//     database: process.env.MYSQLDB_DATABASE,
-// });
 import sqlite3 from 'sqlite3';
 import { type Database, open } from 'sqlite';
 import { LogLevel, log } from './logger';
-import { version } from '.';
+import { isDebug, version } from '.';
 import semver, { Range, SemVer } from 'semver';
 
-// this is a top-level await
-// open the database
+if (isDebug) {
+    sqlite3.verbose();
+}
 
-// export const dbConnection = await open({
-//     filename: env.DB_PATH,
-//     driver: sqlite3.Database,
-// });
-
-sqlite3.verbose();
-
+/**
+ * Sets up the connection to the database
+ * @param dbPath The file path to the database
+ * @returns A promise that resolves to {@link Database}
+ */
 export function setupDB(dbPath: string): Promise<Database> {
     log(`Using database at: ${dbPath}`);
     return new Promise<Database>((resolve) => {
-        // if (!env.DB_PATH) {
-        //     throw 'Database not found!';
-        // }
         open({
             filename: dbPath,
             driver: sqlite3.Database,
@@ -44,8 +29,12 @@ export function setupDB(dbPath: string): Promise<Database> {
     });
 }
 
+/**
+ * Checks the required tables are present in the database, will create them if they are missing
+ * @param dbConnection The database connection to use
+ * @returns A promise that resolves once checking is complete
+ */
 function checkTables(dbConnection: Database): Promise<void> {
-    // "SELECT name FROM sqlite_schema WHERE type='table' and name NOT LIKE 'sqlite_%';"
     return new Promise<void>((resolve) => {
         type Result = { name: string }[];
         const tableNames: string[] = [];
@@ -194,6 +183,12 @@ function checkTables(dbConnection: Database): Promise<void> {
     });
 }
 
+/**
+ * Checks the version of the server that made the database is compatible.
+ * In future will apply necessary migrations after making a backup of the database
+ * @param dbConnection The database connection to use
+ * @returns A promise that resolves once checking is complete
+ */
 function checkVersion(dbConnection: Database): Promise<void> {
     return new Promise<void>((resolve) => {
         interface Row {
@@ -204,16 +199,13 @@ function checkVersion(dbConnection: Database): Promise<void> {
             .then((result) => {
                 const dbVersion =
                     semver.parse(result?.value) || new SemVer('0.0.0');
-                // if (
-                //     result?.value.split('.')[0] !==
-                //     version.version.toString().split('.')[0]
-                // ) {
                 if (
                     !semver.satisfies(
                         version,
                         new Range(`~${dbVersion.version}`)
                     )
                 ) {
+                    //TODO Apply migrations where possible
                     log(
                         `Incompatible database version (database version is ${dbVersion.version}, needs to be ${version.major}.${version.minor}.X)`,
                         LogLevel.Error,
