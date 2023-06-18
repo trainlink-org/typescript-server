@@ -11,7 +11,8 @@
 // });
 import sqlite3 from 'sqlite3';
 import { type Database, open } from 'sqlite';
-import { log } from './logger';
+import { LogLevel, log } from './logger';
+import { version } from '.';
 
 // this is a top-level await
 // open the database
@@ -20,6 +21,8 @@ import { log } from './logger';
 //     filename: env.DB_PATH,
 //     driver: sqlite3.Database,
 // });
+
+sqlite3.verbose();
 
 export function setupDB(dbPath: string): Promise<Database> {
     log(`Using database at: ${dbPath}`);
@@ -31,7 +34,11 @@ export function setupDB(dbPath: string): Promise<Database> {
             filename: dbPath,
             driver: sqlite3.Database,
         }).then((dbConnection) => {
-            checkTables(dbConnection).then(() => resolve(dbConnection));
+            checkTables(dbConnection)
+                .then(() => {
+                    return checkVersion(dbConnection);
+                })
+                .then(() => resolve(dbConnection));
         });
     });
 }
@@ -158,6 +165,74 @@ function checkTables(dbConnection: Database): Promise<void> {
                     return;
                 }
             })
+            .then(() => {
+                if (!tableNames.includes('systemConfig')) {
+                    dbConnection
+                        .exec(
+                            `
+                        CREATE TABLE systemConfig (
+                            idsystem INTEGER PRIMARY KEY AUTOINCREMENT,
+                            key TEXT,
+                            value TEXT
+                        );
+                        INSERT INTO systemConfig (key,value) VALUES('version', '${version.version}');
+                    `
+                        )
+                        // .then(() => {
+                        //     dbConnection.exec(
+                        //     );
+                        // })
+                        .then(() => {
+                            return;
+                        });
+                } else {
+                    return;
+                }
+            })
             .then(resolve);
+    });
+}
+
+function checkVersion(dbConnection: Database): Promise<void> {
+    return new Promise<void>((resolve) => {
+        interface Row {
+            value: string;
+        }
+        dbConnection
+            .get<Row>("SELECT value FROM systemConfig WHERE key = 'version'")
+            .then((result) => {
+                if (
+                    result?.value.split('.')[0] !==
+                    version.version.toString().split('.')[0]
+                ) {
+                    log(
+                        `Incompatible database version (database version is ${
+                            result?.value
+                        }, needs to be ${
+                            version.version.toString().split('.')[0]
+                        }.X.X)`,
+                        LogLevel.Error,
+                        true
+                    );
+                    throw 'Incompatible database version';
+                } else if (
+                    result?.value.split('.')[0] === '0' &&
+                    result.value.split('.')[1] !==
+                        version.version.toString().split('.')[1]
+                ) {
+                    log(
+                        `Incompatible database version (database version is ${
+                            result?.value
+                        }, needs to be ${
+                            version.version.toString().split('.')[0]
+                        }.${version.version.toString().split('.')[1]}.X)`,
+                        LogLevel.Error,
+                        true
+                    );
+                    throw 'Incompatible database version';
+                } else {
+                    resolve();
+                }
+            });
     });
 }
