@@ -11,7 +11,7 @@
 // });
 import sqlite3 from 'sqlite3';
 import { type Database, open } from 'sqlite';
-import { env } from 'node:process';
+import { log } from './logger';
 
 // this is a top-level await
 // open the database
@@ -21,13 +21,14 @@ import { env } from 'node:process';
 //     driver: sqlite3.Database,
 // });
 
-export function setupDB(): Promise<Database> {
+export function setupDB(dbPath: string): Promise<Database> {
+    log(`Using database at: ${dbPath}`);
     return new Promise<Database>((resolve) => {
-        if (!env.DB_PATH) {
-            throw 'Database not found!';
-        }
+        // if (!env.DB_PATH) {
+        //     throw 'Database not found!';
+        // }
         open({
-            filename: env.DB_PATH,
+            filename: dbPath,
             driver: sqlite3.Database,
         }).then((dbConnection) => {
             checkTables(dbConnection).then(() => resolve(dbConnection));

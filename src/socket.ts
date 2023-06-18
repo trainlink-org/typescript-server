@@ -35,13 +35,14 @@ export type SocketIoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 export let userCount = 0;
 
 export function startSocketServer(
-    portString: string | undefined,
+    // portString: string | undefined,
+    port: number,
     store: LocoStore,
     runtime: Runtime,
     turnoutMap: TurnoutMap,
     adapter: HardwareAdapter
 ) {
-    const port = validateEnvInt(portString, 6868);
+    // const port = validateEnvInt(portString, 6868);
 
     // Creates a new socket.io server
     io = new Server<ClientToServerEvents, ServerToClientEvents>(port, {

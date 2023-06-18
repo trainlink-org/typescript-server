@@ -9,17 +9,14 @@ import { open } from 'sqlite';
 import { env } from 'node:process';
 import { setupDB } from './database';
 
-export async function startServer() {
+export async function startServer(serverConfig: ServerConfig) {
     // Create the new hardware adapter
     const adapter = new DummyHardwareAdapter();
-    console.log(env.DB_PATH);
 
     // Opens the database
-    // const dbConnection = await open({
-    //     filename: env.DB_PATH,
-    //     driver: sqlite3.Database,
-    // });
-    const dbConnection = await setupDB();
+    const dbConnection = await setupDB(
+        serverConfig.configPath + '/' + (serverConfig.dbName || 'database.db')
+    );
 
     // Create the LocoStore
     const store = new LocoStore(dbConnection, adapter);
@@ -45,13 +42,7 @@ export async function startServer() {
     turnoutMap.loadTurnoutMap();
     runtime.loadPersistentScripts();
     // Starts the Socket.IO server
-    startSocketServer(
-        process.env.NODE_DOCKER_PORT,
-        store,
-        runtime,
-        turnoutMap,
-        adapter
-    );
+    startSocketServer(serverConfig.port, store, runtime, turnoutMap, adapter);
 }
 
 const environment = process.env.NODE_ENV;
@@ -80,5 +71,8 @@ export const trackPower = { state: false };
 // export const turnoutMap = new TurnoutMap();
 
 export interface ServerConfig {
-    dbPath: string;
+    configPath: string;
+    port: number;
+    dbName?: string;
+    logPath?: string;
 }
