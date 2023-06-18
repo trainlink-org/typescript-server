@@ -1,4 +1,6 @@
 import { env } from 'node:process';
+import { startServer } from '.';
+import { LogLevel, log } from './logger';
 
 const osConfigDir = (() => {
     switch (process.platform) {
@@ -13,9 +15,7 @@ const osConfigDir = (() => {
             throw 'Unsupported OS';
     }
 })();
-console.log(osConfigDir);
 env.DB_PATH = process.env.DB_PATH || osConfigDir + '/database.db';
-console.log(env.DB_PATH);
-
-import { startServer } from '.';
+// log('Starting Server...', LogLevel.Info, false);
+log('Starting Server...', undefined, true);
 startServer();
