@@ -4,8 +4,8 @@ import {
     type LocoIdentifier,
     type ServerToClientEvents,
     type ClientToServerEvents,
-    type HardwareAdapter,
 } from '@trainlink-org/shared-lib';
+import type { HardwareAdapter } from '../adapter';
 import { type LocoStore, SyncLevel } from '../locos';
 import type { SocketIoServer } from '../socket';
 
