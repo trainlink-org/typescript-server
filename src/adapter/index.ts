@@ -1,155 +1,117 @@
-import { version } from '../index';
+import { Direction, TurnoutState } from '@trainlink-org/shared-lib';
 import {
-    Direction,
-    TurnoutState,
-    type HardwareAdapter,
-} from '@trainlink-org/shared-lib';
-import { resolve } from 'path';
+    VirtualDriver,
+    AvailableDrivers,
+    type DeviceDriver,
+    DCCExDriver,
+} from './drivers';
 
-import { io, type Socket } from 'socket.io-client';
+export enum DriverStatus {
+    Available,
+    Switching,
+    Unavailable,
+}
 
-/**
- * Handles connecting to hardware via a websocket
- */
-export class SocketHardwareAdapter implements HardwareAdapter {
-    /** Used to communicate with the hardware */
-    private _socket: Socket;
-    /** Stores the previous packet */
-    private _prevPacket = '';
+export class HardwareAdapter {
+    private _driver: DeviceDriver;
+    private _driverStatus: DriverStatus;
 
     constructor() {
-        // Connect to native connector
-        this._socket = io('http://host.docker.internal:3002');
-        this._socket.disconnect();
-        this._socket.on('connect', () => {
-            console.log('Connected');
-            this._socket.emit('handshake', version.version);
-        });
-        this._socket.on('disconnect', (reason) => {
-            console.log('Hardware adapter disconnected');
-            console.log(reason);
-        });
+        this._driver = new VirtualDriver();
+        this._driverStatus = DriverStatus.Available;
     }
 
-    /**
-     * Sets the speed of a loco
-     * @param address The address of the loco
-     * @param speed The new speed
-     * @param direction The new direction
-     * @returns A promise that resolves upon completion
-     */
+    selectDriver(driver: AvailableDrivers, address?: string) {
+        this._driverStatus = DriverStatus.Switching;
+        this._driver.close();
+        if (address === undefined) {
+            this._driver = new VirtualDriver();
+        } else {
+            switch (driver) {
+                case AvailableDrivers.VirtualDriver:
+                    this._driver = new VirtualDriver();
+                    this._driverStatus = DriverStatus.Available;
+                    break;
+                case AvailableDrivers.DCCExDriver:
+                    this._driver = new DCCExDriver(address, () => {
+                        this._driverStatus = DriverStatus.Available;
+                    });
+                    break;
+            }
+        }
+    }
+
+    get driverStatus() {
+        return this._driverStatus;
+    }
+
     locoSetSpeed(
         address: number,
         speed: number,
         direction: Direction
     ): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const packet = `${address} ${speed} ${this._directionToNumber(
-                direction
-            )}`;
-            if (packet !== this._prevPacket) {
-                if (this._directionToNumber(direction) !== -1) {
-                    this._socket.emit(
-                        'cab/setSpeed',
-                        address,
-                        speed,
-                        this._directionToNumber(direction)
-                    );
-                    this._prevPacket = packet;
-                } else {
-                    this.locoEstop(address);
-                }
-            }
-            resolve();
+        return this.waitTillDriverAvailable().then(() => {
+            return this._driver.setSpeed(
+                address,
+                speed,
+                directionToNum(direction)
+            );
         });
     }
 
-    /**
-     * Estops a loco
-     * @param address The address of the loco
-     * @returns A promise that resolves upon completion
-     */
     locoEstop(address: number): Promise<void> {
-        return new Promise<void>((resolve) => {
-            this._socket.emit('cab/eStop', address);
-            resolve();
+        return this.waitTillDriverAvailable().then(() => {
+            return this._driver.emergencyStop(address);
         });
     }
 
-    /**
-     * Converts a direction to a number to use with hardware
-     * @param direction The direction to convert
-     * @returns The number output
-     */
-    private _directionToNumber(direction: Direction): number {
-        switch (direction) {
-            case Direction.forward:
-                return 1;
-            case Direction.reverse:
-                return 0;
-            case Direction.stopped:
-                return -1;
-        }
-    }
-
-    /**
-     * Sets the state of a turnout
-     * @param id The ID of the turnout to set
-     * @param state The state to set the turnout to
-     * @returns A promise that resolves upon completion
-     */
     turnoutSet(id: number, state: TurnoutState): Promise<void> {
-        return new Promise<void>((resolve) => {
-            let numericState = 0;
-            numericState = state === TurnoutState.thrown ? 1 : 0;
-            this._socket.emit('turnout/set', id, numericState);
-            resolve();
+        return this.waitTillDriverAvailable().then(() => {
+            return this._driver.setTurnoutState(id, turnoutStateToNum(state));
         });
     }
 
-    /**
-     * Sets the state of the track power
-     * @param state Power state to set
-     * @returns A promise that resolves upon completion
-     */
     trackPowerSet(state: boolean): Promise<void> {
+        return this.waitTillDriverAvailable().then(() => {
+            return this._driver.setTrackPower(state);
+        });
+    }
+
+    waitTillDriverAvailable(): Promise<void> {
         return new Promise<void>((resolve) => {
-            this._socket.emit('track/power', state);
-            resolve();
+            setInterval(() => {
+                if (this._driverStatus === DriverStatus.Available) resolve();
+            }, 5);
         });
     }
 }
 
-export class DummyHardwareAdapter implements HardwareAdapter {
-    locoSetSpeed(
-        address: number,
-        speed: number,
-        direction: Direction
-    ): Promise<void> {
-        return new Promise<void>((resolve) => {
-            console.log(`${address} - ${speed} @ ${direction}`);
-            resolve();
-        });
+/**
+ * Converts a direction to a number to use with hardware
+ * @param direction The direction to convert
+ * @returns The number output
+ */
+function directionToNum(direction: Direction): number {
+    switch (direction) {
+        case Direction.forward:
+            return 1;
+        case Direction.reverse:
+            return 0;
+        case Direction.stopped:
+            return -1;
     }
+}
 
-    locoEstop(address: number): Promise<void> {
-        return new Promise<void>((resolve) => {
-            console.log(`${address}`);
-            resolve();
-        });
-    }
-
-    turnoutSet(id: number, state: TurnoutState): Promise<void> {
-        return new Promise<void>((resolve) => {
-            console.log(`${id} - ${state}`);
-            resolve();
-        });
-    }
-
-    trackPowerSet(state: boolean): Promise<void> {
-        return new Promise<void>((resolve) => {
-            console.log(`${state}`);
-            resolve();
-        });
+/**
+ * Converts a TurnoutState to a number to use with hardware
+ * @param turnoutState The {@link TurnoutState} to convert
+ * @returns The number output
+ */
+function turnoutStateToNum(turnoutState: TurnoutState): number {
+    switch (turnoutState) {
+        case TurnoutState.thrown:
+            return 1;
+        case TurnoutState.closed:
+            return 0;
     }
 }
