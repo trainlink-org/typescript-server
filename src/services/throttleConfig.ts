@@ -1,4 +1,4 @@
-import { Loco } from '@trainlink-org/shared-lib';
+import { Loco } from '@trainlink-org/trainlink-types';
 import { io } from '../socket';
 import type { LocoStore } from '../locos';
 

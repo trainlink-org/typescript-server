@@ -1,4 +1,4 @@
-import { Loco } from '@trainlink-org/shared-lib';
+import { Loco } from '@trainlink-org/trainlink-types';
 import { fwd } from '@/src/automation/commands';
 import { Scope } from '@/src/automation/types';
 // import { turnoutMap } from '@/src';

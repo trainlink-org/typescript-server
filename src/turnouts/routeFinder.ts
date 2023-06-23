@@ -12,7 +12,7 @@ import {
     type CurrentTurnoutState,
     TurnoutState,
     isTurnout,
-} from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
 
 /**
  * Finds the shortest path between two destinations using Dijkstra's algorithm

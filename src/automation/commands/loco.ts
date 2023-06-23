@@ -1,6 +1,6 @@
 import type { AutomationCommand, Scope } from '../types';
 
-import { Direction } from '@trainlink-org/shared-lib';
+import { Direction } from '@trainlink-org/trainlink-types';
 
 /**
  * Implements the ESTOP command

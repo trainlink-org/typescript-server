@@ -1,5 +1,5 @@
 // import { turnoutMap } from '../index';
-import type { Coordinate } from '@trainlink-org/shared-lib';
+import type { Coordinate } from '@trainlink-org/trainlink-types';
 import type { TurnoutMap } from '../turnouts';
 
 export function changeCoordinate(

@@ -1,4 +1,4 @@
-import { Direction, TurnoutState } from '@trainlink-org/shared-lib';
+import { Direction, TurnoutState } from '@trainlink-org/trainlink-types';
 import {
     VirtualDriver,
     AvailableDrivers,
