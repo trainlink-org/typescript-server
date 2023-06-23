@@ -2,7 +2,7 @@ import type { IntermediateSymbol } from './types';
 import {
     AutomationError,
     AutomationErrorType,
-} from '@trainlink-org/trainlink-types';
+} from '@trainlink-org/shared-lib';
 
 /**
  * Converts one string into an array of understandable symbols

@@ -5,8 +5,8 @@ import {
     AutomationType,
     type AutomationScriptClient,
     EventHandlerType,
-} from '@trainlink-org/trainlink-types';
-import type { Loco } from '@trainlink-org/shared-lib';
+    type Loco,
+} from '@trainlink-org/shared-lib';
 
 /**
  * Stores a symbol between the lexer and the parser

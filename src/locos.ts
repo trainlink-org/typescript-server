@@ -1,17 +1,31 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { adapter } from './index';
-import { Loco, LocoStoreBase } from '@trainlink-org/shared-lib';
-import type { LocoIdentifier, Direction } from '@trainlink-org/trainlink-types';
+// import { adapter } from './index';
+import {
+    Loco,
+    LocoStoreBase,
+    type HardwareAdapter,
+    type LocoIdentifier,
+    type Direction,
+} from '@trainlink-org/shared-lib';
+// import type { LocoIdentifier, Direction } from '@trainlink-org/shared-lib';
 import { log } from './logger';
-import { dbConnection } from './database';
+// import { dbConnection } from './database';
 import { io } from './socket';
-
-import { format as sqlFormat } from 'mysql';
+import type { Database } from 'sqlite';
+// import { HardwareAdapter } from '@trainlink-org/shared-lib';
 
 /**
  * A store for multiple Loco objects
  */
 export class LocoStore extends LocoStoreBase {
+    private _dbConnection: Database;
+    private _adapter: HardwareAdapter;
+
+    constructor(dbConnection: Database, adapter: HardwareAdapter) {
+        super();
+        this._dbConnection = dbConnection;
+        this._adapter = adapter;
+    }
     /**
      *  Adds a {@link Loco} to the LocoStore
      * 	@param loco The {@link Loco} to add to the LocoStore
@@ -20,8 +34,7 @@ export class LocoStore extends LocoStoreBase {
         super.add(loco);
         const sql = 'INSERT INTO locos (name, address) VALUES (?,?);';
         const inserts = [loco.name, loco.address];
-        dbConnection.query(sqlFormat(sql, inserts), (error, results) => {
-            if (error) throw error;
+        this._dbConnection.all(sql, inserts).then((results) => {
             log(results);
         });
     }
@@ -59,13 +72,9 @@ export class LocoStore extends LocoStoreBase {
             if (isSuccessful) {
                 const sql = 'DELETE FROM locos WHERE address = ?';
                 const inserts = [loco.address];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results) => {
-                        if (error) throw error;
-                        log(results);
-                    }
-                );
+                this._dbConnection.all(sql, inserts).then((results) => {
+                    log(results);
+                });
                 return true;
             }
             return false;
@@ -97,8 +106,7 @@ export class LocoStore extends LocoStoreBase {
 
             const sql = 'SELECT idlocos FROM locos WHERE address = ?;';
             const inserts = [loco.address];
-            dbConnection.query(sqlFormat(sql, inserts), (error, results) => {
-                if (error) throw error;
+            this._dbConnection.all(sql, inserts).then((results) => {
                 log(results[0].idlocos);
                 const sql =
                     'UPDATE locos SET name = ?, address = ? WHERE idlocos = ?;';
@@ -107,13 +115,9 @@ export class LocoStore extends LocoStoreBase {
                     newLoco.address,
                     results[0].idlocos,
                 ];
-                dbConnection.query(
-                    sqlFormat(sql, inserts),
-                    (error, results) => {
-                        if (error) throw error;
-                        log(results);
-                    }
-                );
+                this._dbConnection.run(sql, inserts).then((results) => {
+                    log(results);
+                });
             });
         }
     }
@@ -131,18 +135,16 @@ export class LocoStore extends LocoStoreBase {
                 address: number;
                 description: string;
             }
-            dbConnection.query(
-                'SELECT * FROM locos',
-                (error, results: Result[]) => {
-                    if (error) throw error; // TODO Probably should be improved
+            this._dbConnection
+                .all('SELECT * FROM locos')
+                .then((results: Result[]) => {
                     for (const result of results) {
                         if (!this.objectStore.has(result.address)) {
                             super.add(new Loco(result.name, result.address));
                         }
                     }
                     resolve();
-                }
-            );
+                });
         });
     }
 
@@ -176,7 +178,7 @@ export class LocoStore extends LocoStoreBase {
                 socketSync === SyncLevel.SerialOnly
             ) {
                 //TODO implement error handling
-                void adapter.locoSetSpeed(
+                void this._adapter.locoSetSpeed(
                     loco.address,
                     loco.speed,
                     loco.direction

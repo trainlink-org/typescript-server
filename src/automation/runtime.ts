@@ -9,9 +9,7 @@ import {
 } from './types';
 import { estop } from './commands';
 
-import { turnoutMap } from '../index';
 import type { LocoStore } from '../locos';
-import { dbConnection } from '../database';
 import {
     AutomationType,
     type RunningAutomationClient,
@@ -20,16 +18,18 @@ import {
     Direction,
     type LocoIdentifier,
     EventHandlerType,
-} from '@trainlink-org/trainlink-types';
+} from '@trainlink-org/shared-lib';
 
 import { EventEmitter } from 'events';
-import { format as sqlFormat } from 'mysql';
+import type { TurnoutMap } from '../turnouts';
+import type { Database } from 'sqlite';
 
 /**
  * Provides the environment to store and run automations
  */
 export class Runtime {
     private _store: LocoStore;
+    private _turnoutMap: TurnoutMap;
     private _scriptsStore = new Map<number, AutomationScript>();
     private _runningScriptsStore = new Map<PID, ScriptRunner>();
     private _updateCallback: (
@@ -38,7 +38,7 @@ export class Runtime {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     private _persistentUpdateCallback = () => {};
     private _pidAllocator = new pidAllocator();
-    private _persistentStore: ScriptStoreProvider = new ScriptStoreDB();
+    private _persistentStore: ScriptStoreProvider;
     private _eventHandlers: HandlerJumpTable = {
         turnouts: { throw: new Map(), close: new Map() },
     };
@@ -50,10 +50,14 @@ export class Runtime {
      */
     constructor(
         store: LocoStore,
+        turnoutMap: TurnoutMap,
+        dbConnection: Database,
         callback: (runningAutomations: RunningAutomationClient[]) => void
     ) {
         this._store = store;
+        this._turnoutMap = turnoutMap;
         this._updateCallback = callback;
+        this._persistentStore = new ScriptStoreDB(dbConnection);
         // this.loadPersistentScripts();
     }
 
@@ -108,9 +112,9 @@ export class Runtime {
             let scope: Scope;
             if (script.type === AutomationType.automation && locoID) {
                 const loco = await this._store.getLoco(locoID);
-                scope = new Scope(turnoutMap, loco);
+                scope = new Scope(this._turnoutMap, loco);
             } else {
-                scope = new Scope(turnoutMap);
+                scope = new Scope(this._turnoutMap);
             }
             const pid = this._pidAllocator.newPID(script.id);
             this._runningScriptsStore.set(
@@ -274,7 +278,7 @@ export class Runtime {
             // Runs the event handler script if one is found
             if (script) {
                 // Create the scope
-                const scope = new Scope(turnoutMap);
+                const scope = new Scope(this._turnoutMap);
                 const pid = this._pidAllocator.newPID(-1);
                 // Create the ScriptRunner
                 this._runningScriptsStore.set(
@@ -494,6 +498,11 @@ interface ScriptStoreProvider {
  * Implementation of {@link ScriptStoreProvider} for a MySQL database
  */
 class ScriptStoreDB implements ScriptStoreProvider {
+    private _dbConnection: Database;
+
+    constructor(dbConnection: Database) {
+        this._dbConnection = dbConnection;
+    }
     /**
      * Saves a script to the database
      * @param script The script to save
@@ -502,8 +511,7 @@ class ScriptStoreDB implements ScriptStoreProvider {
         // Find out if the script has been saved before
         const sql = 'SELECT script FROM scripts WHERE scriptNum = ?;';
         const inserts = [script.id];
-        dbConnection.query(sqlFormat(sql, inserts), (error, results) => {
-            if (error) throw error;
+        this._dbConnection.all(sql, inserts).then(async (results) => {
             if (results.length === 0) {
                 // Script hasn't been saved so need to insert it
                 const sql =
@@ -513,9 +521,7 @@ class ScriptStoreDB implements ScriptStoreProvider {
                     script.name,
                     JSON.stringify(script),
                 ];
-                dbConnection.query(sqlFormat(sql, inserts), (error) => {
-                    if (error) throw error;
-                });
+                await this._dbConnection.run(sql, inserts);
             } else {
                 // Script has been saved so need to update it
                 const sql =
@@ -525,9 +531,7 @@ class ScriptStoreDB implements ScriptStoreProvider {
                     JSON.stringify(script),
                     script.id,
                 ];
-                dbConnection.query(sqlFormat(sql, inserts), (error) => {
-                    if (error) throw error;
-                });
+                await this._dbConnection.run(sql, inserts);
             }
         });
     }
@@ -536,10 +540,10 @@ class ScriptStoreDB implements ScriptStoreProvider {
      * Delete a script from the database
      * @param scriptID Script ID to delete
      */
-    deleteScript(scriptID: number): void {
+    async deleteScript(scriptID: number) {
         const sql = 'DELETE FROM scripts WHERE scriptNum = ?';
         const inserts = [scriptID];
-        dbConnection.query(sqlFormat(sql, inserts));
+        await this._dbConnection.run(sql, inserts);
     }
 
     /**
@@ -553,13 +557,9 @@ class ScriptStoreDB implements ScriptStoreProvider {
                 script: string;
             };
             // Fetch all the scripts
-            dbConnection.query(
-                'SELECT script FROM scripts',
-                (error, results: Result[]) => {
-                    if (error) {
-                        reject(error);
-                        throw error;
-                    }
+            this._dbConnection
+                .all('SELECT script FROM scripts')
+                .then((results: Result[]) => {
                     for (const result of results) {
                         returnArray.push([
                             JSON.parse(result.script).source,
@@ -567,8 +567,7 @@ class ScriptStoreDB implements ScriptStoreProvider {
                         ]);
                     }
                     resolve(returnArray);
-                }
-            );
+                });
         });
 
         const finalReturn = fetch.then(async (scripts) => {

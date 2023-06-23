@@ -1,11 +1,13 @@
-import { version as serverVersion, runtime, turnoutMap } from './index';
+// import { version as serverVersion, runtime, turnoutMap } from './index';
+import { type ServerConfig, version as serverVersion } from './index';
 import {
     type ServerToClientEvents,
     type ClientToServerEvents,
     AutomationError,
     AutomationErrorType,
     type Coordinate,
-} from '@trainlink-org/trainlink-types';
+    type HardwareAdapter,
+} from '@trainlink-org/shared-lib';
 import { log } from './logger';
 
 import * as throttleHandler from './throttle/throttleHandler';
@@ -20,6 +22,11 @@ import {
 import * as routesConfig from './services/routesConfig';
 
 import { Server, type Socket } from 'socket.io';
+import type { Runtime } from './automation/runtime';
+import type { TurnoutMap } from './turnouts';
+import type { LocoStore } from './locos';
+
+import semver, { Range, SemVer } from 'semver';
 
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
@@ -29,39 +36,52 @@ export type SocketIoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
 export let userCount = 0;
 
-export function startSocketServer(portString: string | undefined) {
-    const port = validateEnvInt(portString, 3001);
+export function startSocketServer(
+    // portString: string | undefined,
+    serverConfig: ServerConfig,
+    store: LocoStore,
+    runtime: Runtime,
+    turnoutMap: TurnoutMap,
+    adapter: HardwareAdapter
+) {
+    // const port = validateEnvInt(portString, 6868);
 
     // Creates a new socket.io server
-    io = new Server<ClientToServerEvents, ServerToClientEvents>(port, {
-        cors: {
-            origin: '*',
-        },
-    });
+    io = new Server<ClientToServerEvents, ServerToClientEvents>(
+        serverConfig.port,
+        {
+            cors: {
+                // origin: '*',
+                origin: true,
+            },
+        }
+    );
     io.on('connection', (socket) => {
         socket.on('metadata/handshake', (_name, version) => {
             socket.data.version = version;
-            // Check the clients version is compatible with the server
-            const versionString: string = version.toString();
+            const versionString = semver.parse(version) || new SemVer('0.0.0');
             if (
-                versionString.split('.')[0] ===
-                serverVersion.version?.split('.')[0]
+                semver.satisfies(
+                    versionString,
+                    new Range(`${serverVersion.major}.${serverVersion.minor}.x`)
+                )
             ) {
                 // Client is compatible
                 userCount += 1;
                 log(`A user connected (${userCount} in total)`);
                 socket.emit(
                     'metadata/handshake',
-                    serverVersion.name,
+                    // serverVersion.name,
+                    serverConfig.productName,
                     serverVersion.version
                 );
-                statusHandler.sendLocoState(socket);
+                statusHandler.sendLocoState(socket, store);
                 //TODO implement error handling
-                void statusHandler.sendTurnoutMapState(socket);
+                void statusHandler.sendTurnoutMapState(socket, turnoutMap);
                 statusHandler.sendTrackState(socket);
             } else {
                 // Client incompatible so disconnect
-                socket.disconnect();
+                socket.disconnect(true);
             }
         });
 
@@ -77,21 +97,34 @@ export function startSocketServer(portString: string | undefined) {
                 speed,
                 throttleID,
                 io,
-                socket
+                socket,
+                store
             );
         });
         socket.on('throttle/switchDirection', (identifier) => {
-            throttleHandler.changeDirection(identifier, io);
+            throttleHandler.changeDirection(identifier, io, store);
         });
         socket.on('throttle/setDirection', (identifier, direction) => {
             console.log(direction);
-            throttleHandler.setDirection(identifier, direction, io, socket);
+            throttleHandler.setDirection(
+                identifier,
+                direction,
+                io,
+                socket,
+                store
+            );
         });
         socket.on('throttle/setFunction', (identifier, functionNum, state) => {
-            throttleHandler.setFunction(identifier, functionNum, state, io);
+            throttleHandler.setFunction(
+                identifier,
+                functionNum,
+                state,
+                io,
+                store
+            );
         });
         socket.on('throttle/setTrackPower', (state) => {
-            throttleHandler.setTrackPower(state, io, socket);
+            throttleHandler.setTrackPower(state, io, socket, adapter);
         });
         socket.on('automation/fileUpload', async (name, file) => {
             await runtime
@@ -148,35 +181,45 @@ export function startSocketServer(portString: string | undefined) {
         });
         socket.on('config/addLoco', async (name, address) => {
             if (
-                (await validateName(name)) &&
-                (await validateAddress(address))
+                (await validateName(name, store)) &&
+                (await validateAddress(address, store))
             ) {
-                throttleConfig.addLoco(name, address);
+                throttleConfig.addLoco(store, name, address);
             }
         });
         socket.on(
             'config/editLoco',
             async (oldAddress, newName, newAddress) => {
                 if (
-                    await validateUpdatedLoco(oldAddress, newName, newAddress)
+                    await validateUpdatedLoco(
+                        oldAddress,
+                        newName,
+                        newAddress,
+                        store
+                    )
                 ) {
-                    throttleConfig.editLoco(oldAddress, newAddress, newName);
+                    throttleConfig.editLoco(
+                        store,
+                        oldAddress,
+                        newAddress,
+                        newName
+                    );
                 }
             }
         );
         socket.on('config/deleteLoco', async (address: number) => {
-            if (await validateCurrentAddress(address)) {
-                throttleConfig.deleteLoco(address);
+            if (await validateCurrentAddress(address, store)) {
+                throttleConfig.deleteLoco(store, address);
             }
         });
         socket.on(
             'config/routes/changeObjectCoordinate',
             (id: number, coord: Coordinate) => {
-                routesConfig.changeCoordinate(id, coord);
+                routesConfig.changeCoordinate(id, coord, turnoutMap);
             }
         );
     });
-    log('\nListening on port %d', port);
+    log('\nListening on port %d', serverConfig.port);
 }
 
 function validateEnvInt(port: string | undefined, fallback: number) {

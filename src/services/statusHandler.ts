@@ -1,14 +1,17 @@
-import { store, trackPower, turnoutMap } from '../index';
-import type { TurnoutPacket } from '@trainlink-org/trainlink-types';
+// import { store, trackPower, turnoutMap } from '../index';
+import { trackPower } from '../index';
+import type { TurnoutPacket } from '@trainlink-org/shared-lib';
 import { log } from '../logger';
 
 import type { CustomSocket } from '../socket';
+import type { LocoStore } from '../locos';
+import type { TurnoutMap } from '../turnouts';
 
 /**
  * Constructs a packet containing the current state of the locoStore
  * @param socket socket to send the packet to
  */
-export function sendLocoState(socket: CustomSocket) {
+export function sendLocoState(socket: CustomSocket, store: LocoStore) {
     const locosArray: string[] = [];
     for (const loco of store.getAllLocos()) {
         locosArray.push(JSON.stringify(loco));
@@ -21,7 +24,10 @@ export function sendLocoState(socket: CustomSocket) {
  * Constructs a packet containing the current state of all the turnouts
  * @param socket The socket to send the packet to
  */
-export async function sendTurnoutMapState(socket: CustomSocket) {
+export async function sendTurnoutMapState(
+    socket: CustomSocket,
+    turnoutMap: TurnoutMap
+) {
     const turnoutPacket: TurnoutPacket = {
         turnouts: await turnoutMap.getTurnouts(),
         destinations: await turnoutMap.getDestinations(),

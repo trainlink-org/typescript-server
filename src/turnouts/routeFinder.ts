@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
+import type { TurnoutMap } from './index';
 import type { TurnoutGraph } from './graph';
 import { PriorityQueue } from './priorityQueue';
 
@@ -11,7 +12,7 @@ import {
     type CurrentTurnoutState,
     TurnoutState,
     isTurnout,
-} from '@trainlink-org/trainlink-types';
+} from '@trainlink-org/shared-lib';
 
 /**
  * Finds the shortest path between two destinations using Dijkstra's algorithm
@@ -168,11 +169,7 @@ function constructPath(
  */
 export async function pathToTurnouts(
     path: number[],
-    destinations: (id: number) => Promise<Destination>,
-    // allDestinations: () => Promise<Destination[]>,
-    turnouts: (id: number) => Promise<Turnout>,
-    // allTurnouts: () => Promise<Turnout[]>,
-    turnoutLinks: (id: number) => Promise<TurnoutLink>,
+    turnoutMap: TurnoutMap,
     graph: TurnoutGraph
 ): Promise<RouteObject> {
     console.log('pathToTurnouts');
@@ -184,17 +181,20 @@ export async function pathToTurnouts(
         const point = path[i];
         // Ignore it if its a destination
 
-        if (!(await destinations(point)) && (await turnouts(point))) {
-            const turnout = turnouts(point);
+        if (
+            !(await turnoutMap.getDestination(point)) &&
+            (await turnoutMap.getTurnout(point))
+        ) {
+            const turnout = turnoutMap.getTurnout(point);
             //TODO implement error handling
             void turnout.then(async (turnout) => {
                 if (turnout) {
                     // Will never be false due to prev if
                     // Find the primary and secondary link for the turnout
-                    const primaryLink = await turnoutLinks(
+                    const primaryLink = await turnoutMap.getLink(
                         turnout.primaryDirection
                     );
-                    const secondaryLink = await turnoutLinks(
+                    const secondaryLink = await turnoutMap.getLink(
                         turnout.secondaryDirection
                     );
                     // Make sure they aren't undefined
@@ -234,12 +234,16 @@ export async function pathToTurnouts(
     // Find the links used by the route (used for highlighting and allocation)
     const links: TurnoutLink[] = [];
     for (let i = 0; i < path.length; i++) {
-        const currentTurnout = await turnouts(path[i]);
-        const nextTurnout = await turnouts(path[i + 1]);
+        const currentTurnout = await turnoutMap.getTurnout(path[i]);
+        const nextTurnout = await turnoutMap.getTurnout(path[i + 1]);
         const mapPoint: MapPoint | undefined =
-            path[i] <= 0 ? await destinations(path[i]) : currentTurnout;
+            path[i] <= 0
+                ? await turnoutMap.getDestination(path[i])
+                : currentTurnout;
         const nextMapPoint: MapPoint | undefined =
-            path[i + 1] <= 0 ? await destinations(path[i + 1]) : nextTurnout;
+            path[i + 1] <= 0
+                ? await turnoutMap.getDestination(path[i + 1])
+                : nextTurnout;
         if (mapPoint && nextMapPoint) {
             const edge = graph.getEdge(mapPoint, nextMapPoint);
             if (edge) links.push(edge);
@@ -247,8 +251,8 @@ export async function pathToTurnouts(
     }
 
     // Find the start and end of the path
-    const start = await destinations(path[0]);
-    const end = await destinations(path[path.length - 1]);
+    const start = await turnoutMap.getDestination(path[0]);
+    const end = await turnoutMap.getDestination(path[path.length - 1]);
 
     return new Promise<RouteObject>((resolve, reject) => {
         // Check if undefined

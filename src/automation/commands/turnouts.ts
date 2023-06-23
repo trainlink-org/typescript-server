@@ -1,6 +1,6 @@
 import type { AutomationCommand, Scope } from '../types';
 
-import { TurnoutState } from '@trainlink-org/trainlink-types';
+import { TurnoutState } from '@trainlink-org/shared-lib';
 
 /**
  * Implements the THROW command

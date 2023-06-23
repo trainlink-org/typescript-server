@@ -12,7 +12,7 @@ import {
 import {
     AutomationError,
     AutomationErrorType,
-} from '@trainlink-org/trainlink-types';
+} from '@trainlink-org/shared-lib';
 
 /**
  * Converts an array of string symbols into a script that's actually executable

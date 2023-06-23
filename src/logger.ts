@@ -15,8 +15,8 @@ export enum LogLevel {
  * @param msg The message to log
  * @param level Describes the severity of the log message
  */
-export function log(msg: unknown, level = LogLevel.Info) {
-    if (isDebug) {
+export function log(msg: unknown, level = LogLevel.Info, alwaysShow = false) {
+    if (isDebug || alwaysShow) {
         switch (level) {
             case LogLevel.Info:
                 console.log(`${msg}`);
