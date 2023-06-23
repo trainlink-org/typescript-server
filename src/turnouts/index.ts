@@ -10,7 +10,7 @@ import {
     type Coordinate,
     TurnoutState,
     type HardwareAdapter,
-} from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
 import { io } from '../socket';
 // import { dbConnection } from '../database';
 

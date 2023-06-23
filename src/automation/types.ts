@@ -6,7 +6,7 @@ import {
     type AutomationScriptClient,
     EventHandlerType,
     type Loco,
-} from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
 
 /**
  * Stores a symbol between the lexer and the parser

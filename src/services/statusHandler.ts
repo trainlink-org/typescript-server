@@ -1,6 +1,6 @@
 // import { store, trackPower, turnoutMap } from '../index';
 import { trackPower } from '../index';
-import type { TurnoutPacket } from '@trainlink-org/shared-lib';
+import type { TurnoutPacket } from '@trainlink-org/trainlink-types';
 import { log } from '../logger';
 
 import type { CustomSocket } from '../socket';

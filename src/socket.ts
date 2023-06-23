@@ -6,9 +6,9 @@ import {
     AutomationError,
     AutomationErrorType,
     type Coordinate,
-    type HardwareAdapter,
-} from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
 import { log } from './logger';
+import type { HardwareAdapter } from './adapter';
 
 import * as throttleHandler from './throttle/throttleHandler';
 import * as statusHandler from './services/statusHandler';

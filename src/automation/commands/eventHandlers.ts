@@ -6,7 +6,10 @@ import type {
     HandlerJumpTable,
 } from '../types';
 
-import { AutomationType, EventHandlerType } from '@trainlink-org/shared-lib';
+import {
+    AutomationType,
+    EventHandlerType,
+} from '@trainlink-org/trainlink-types';
 
 /**
  * Implements the ONCLOSE command

@@ -18,7 +18,7 @@ import {
     Direction,
     type LocoIdentifier,
     EventHandlerType,
-} from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
 
 import { EventEmitter } from 'events';
 import type { TurnoutMap } from '../turnouts';

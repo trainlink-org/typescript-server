@@ -1,7 +1,7 @@
 import { LocoStore } from './locos';
 import { AutomationRuntime } from './automation';
 import { io, startSocketServer } from './socket';
-import { DummyHardwareAdapter } from './adapter';
+import { HardwareAdapter } from './adapter';
 import { TurnoutMap } from './turnouts';
 import { setupDB } from './database';
 import { log } from './logger';
@@ -13,7 +13,7 @@ import semver, { SemVer } from 'semver';
  */
 export async function startServer(serverConfig: ServerConfig) {
     // Create the new hardware adapter
-    const adapter = new DummyHardwareAdapter();
+    const adapter = new HardwareAdapter();
 
     // Opens the database
     const dbConnection = await setupDB(

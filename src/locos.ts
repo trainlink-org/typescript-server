@@ -2,27 +2,29 @@
 // import { adapter } from './index';
 import {
     Loco,
-    LocoStoreBase,
     type HardwareAdapter,
     type LocoIdentifier,
     type Direction,
-} from '@trainlink-org/shared-lib';
-// import type { LocoIdentifier, Direction } from '@trainlink-org/shared-lib';
+} from '@trainlink-org/trainlink-types';
+// import type { LocoIdentifier, Direction } from '@trainlink-org/trainlink-types';
 import { log } from './logger';
 // import { dbConnection } from './database';
 import { io } from './socket';
 import type { Database } from 'sqlite';
-// import { HardwareAdapter } from '@trainlink-org/shared-lib';
+// import { HardwareAdapter } from '@trainlink-org/trainlink-types';
 
 /**
  * A store for multiple Loco objects
  */
-export class LocoStore extends LocoStoreBase {
+export class LocoStore {
+    protected objectStore: Map<number, Loco>; //Stores the actual loco objects
+    protected nameStore: Map<string, number>; //For getting the address from the name
     private _dbConnection: Database;
     private _adapter: HardwareAdapter;
 
     constructor(dbConnection: Database, adapter: HardwareAdapter) {
-        super();
+        this.objectStore = new Map();
+        this.nameStore = new Map();
         this._dbConnection = dbConnection;
         this._adapter = adapter;
     }
@@ -31,7 +33,8 @@ export class LocoStore extends LocoStoreBase {
      * 	@param loco The {@link Loco} to add to the LocoStore
      */
     add(loco: Loco): void {
-        super.add(loco);
+        this.objectStore.set(loco.address, loco);
+        this.nameStore.set(loco.name, loco.address);
         const sql = 'INSERT INTO locos (name, address) VALUES (?,?);';
         const inserts = [loco.name, loco.address];
         this._dbConnection.all(sql, inserts).then((results) => {
@@ -47,7 +50,7 @@ export class LocoStore extends LocoStoreBase {
      */
     getLoco(identifier: LocoIdentifier, sync = SyncLevel.All): Promise<Loco> {
         return new Promise<Loco>((resolve, reject) => {
-            const loco = this.getLocoFromIdentifier(identifier);
+            const loco = this._getLocoFromIdentifier(identifier);
             if (loco && sync !== SyncLevel.None) {
                 resolve(new ProxyLoco(loco, this, sync));
             } else if (loco && sync === SyncLevel.None) {
@@ -58,13 +61,17 @@ export class LocoStore extends LocoStoreBase {
         });
     }
 
+    getAllLocos(): IterableIterator<Loco> {
+        return this.objectStore.values();
+    }
+
     /**
      * Deletes a {@link Loco} from the store
      * @param identifier The identifier of the {@link Loco} to delete
      * @returns true if successful, false if not
      */
     deleteLoco(identifier: LocoIdentifier): boolean {
-        const loco = this.getLocoFromIdentifier(identifier);
+        const loco = this._getLocoFromIdentifier(identifier);
         if (loco !== undefined) {
             const isSuccessful =
                 this.nameStore.delete(loco.name) &&
@@ -89,7 +96,7 @@ export class LocoStore extends LocoStoreBase {
      * @param address The new address for the Loco
      */
     updateLoco(identifier: LocoIdentifier, name?: string, address?: number) {
-        const loco = this.getLocoFromIdentifier(identifier);
+        const loco = this._getLocoFromIdentifier(identifier);
         if (loco) {
             name ??= loco.name;
             address ??= loco.address;
@@ -140,7 +147,9 @@ export class LocoStore extends LocoStoreBase {
                 .then((results: Result[]) => {
                     for (const result of results) {
                         if (!this.objectStore.has(result.address)) {
-                            super.add(new Loco(result.name, result.address));
+                            const loco = new Loco(result.name, result.address);
+                            this.objectStore.set(loco.address, loco);
+                            this.nameStore.set(loco.name, loco.address);
                         }
                     }
                     resolve();
@@ -154,7 +163,7 @@ export class LocoStore extends LocoStoreBase {
      * @param socketSync Whether to sync with clients
      */
     syncLoco(proxyLoco: ProxyLoco, socketSync: SyncLevel) {
-        const loco = this.getLocoFromIdentifier(proxyLoco.address);
+        const loco = this._getLocoFromIdentifier(proxyLoco.address);
         if (loco) {
             if (
                 socketSync === SyncLevel.All ||
@@ -185,6 +194,27 @@ export class LocoStore extends LocoStoreBase {
                 );
             }
         }
+    }
+    /**
+     * Used to get a loco given either the name or address
+     * @param identifier Identifier of {@link Loco} to find
+     * @returns \{@link Loco} if found, undefined if not.
+     */
+    private _getLocoFromIdentifier(
+        identifier: LocoIdentifier
+    ): Loco | undefined {
+        let locoId: number;
+        if (typeof identifier === 'string') {
+            const locoIdUndef = this.nameStore.get(identifier);
+            if (locoIdUndef !== undefined) {
+                locoId = locoIdUndef;
+            } else {
+                return undefined;
+            }
+        } else {
+            locoId = identifier;
+        }
+        return this.objectStore.get(locoId);
     }
 }
 

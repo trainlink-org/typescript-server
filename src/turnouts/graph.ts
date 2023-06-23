@@ -1,4 +1,4 @@
-import type { MapPoint, TurnoutLink } from '@trainlink-org/shared-lib';
+import type { MapPoint, TurnoutLink } from '@trainlink-org/trainlink-types';
 
 /**
  * A undirected graph with weighted edges, used to represent the physical layout
