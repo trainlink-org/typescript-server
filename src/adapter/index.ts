@@ -24,9 +24,11 @@ export class HardwareAdapter {
     }
 
     selectDriver(driver: AvailableDrivers, address?: string) {
+        console.log(`Switching to ${driver}`);
         this._driverStatus = DriverStatus.Switching;
         this._driver.close();
         if (address === undefined) {
+            console.log('Address undefined');
             this._driver = new VirtualDriver();
         } else {
             switch (driver) {
@@ -43,6 +45,10 @@ export class HardwareAdapter {
                             this._driverStatus = DriverStatus.Available;
                         }
                     );
+                    break;
+                default:
+                    this._driver = new VirtualDriver();
+                    this._driverStatus = DriverStatus.Available;
                     break;
             }
         }

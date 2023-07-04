@@ -102,8 +102,8 @@ export class VirtualDriver implements DeviceDriver {
 }
 
 export enum AvailableDrivers {
-    VirtualDriver = 'Virtual Driver',
-    DCCExDriver = 'DCC-EX Driver',
+    VirtualDriver = 'Virtual',
+    DCCExDriver = 'DCC-EX',
 }
 
 // Exports the hardware drivers

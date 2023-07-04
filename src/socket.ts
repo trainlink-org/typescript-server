@@ -27,6 +27,7 @@ import type { TurnoutMap } from './turnouts';
 import type { LocoStore } from './locos';
 
 import semver, { Range, SemVer } from 'semver';
+import type { AvailableDrivers } from './adapter/drivers';
 
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
@@ -227,6 +228,9 @@ export function startSocketServer(
                 routesConfig.changeCoordinate(id, coord, turnoutMap);
             }
         );
+        socket.on('hardware/setDriver', (driver, address) => {
+            adapter.selectDriver(driver as AvailableDrivers, address);
+        });
     });
     log('\nListening on port %d', serverConfig.port);
 }
