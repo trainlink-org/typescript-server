@@ -6,6 +6,7 @@ import { log } from '../logger';
 import type { CustomSocket } from '../socket';
 import type { LocoStore } from '../locos';
 import type { TurnoutMap } from '../turnouts';
+import type { HardwareAdapter } from '../adapter';
 
 /**
  * Constructs a packet containing the current state of the locoStore
@@ -43,4 +44,11 @@ export async function sendTurnoutMapState(
  */
 export function sendTrackState(socket: CustomSocket) {
     socket.emit('metadata/initialState/trackPower', trackPower.state);
+}
+
+export function sendHardwareState(
+    socket: CustomSocket,
+    adapter: HardwareAdapter
+) {
+    socket.emit('hardware/driverChanged', adapter.driverName);
 }

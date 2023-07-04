@@ -15,10 +15,12 @@ export enum DriverStatus {
 export class HardwareAdapter {
     private _driver: DeviceDriver;
     private _driverStatus: DriverStatus;
+    private _driverChangedCallback: (adapter: HardwareAdapter) => void;
 
-    constructor() {
+    constructor(driverChangedCallback: (adapter: HardwareAdapter) => void) {
         this._driver = new VirtualDriver();
         this._driverStatus = DriverStatus.Available;
+        this._driverChangedCallback = driverChangedCallback;
     }
 
     selectDriver(driver: AvailableDrivers, address?: string) {
@@ -33,16 +35,30 @@ export class HardwareAdapter {
                     this._driverStatus = DriverStatus.Available;
                     break;
                 case AvailableDrivers.DCCExDriver:
-                    this._driver = new DCCExDriver(address, () => {
-                        this._driverStatus = DriverStatus.Available;
-                    });
+                    this._driver = new DCCExDriver(
+                        address,
+                        this,
+                        this._driverChangedCallback,
+                        () => {
+                            this._driverStatus = DriverStatus.Available;
+                        }
+                    );
                     break;
             }
         }
+        this._driverChangedCallback(this);
     }
 
     get driverStatus() {
         return this._driverStatus;
+    }
+
+    get driverName() {
+        return this._driver.name;
+    }
+
+    get driverMsg() {
+        return '';
     }
 
     locoSetSpeed(

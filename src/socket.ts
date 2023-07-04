@@ -63,7 +63,14 @@ export function startSocketServer(
             if (
                 semver.satisfies(
                     versionString,
-                    new Range(`${serverVersion.major}.${serverVersion.minor}.x`)
+                    new Range(
+                        `${serverVersion.major}.${serverVersion.minor}.x`
+                    ),
+                    {
+                        includePrerelease: serverVersion.prerelease.length
+                            ? true
+                            : false,
+                    }
                 )
             ) {
                 // Client is compatible
@@ -72,6 +79,7 @@ export function startSocketServer(
                 socket.emit(
                     'metadata/handshake',
                     // serverVersion.name,
+                    serverConfig.name,
                     serverConfig.productName,
                     serverVersion.version
                 );
@@ -79,6 +87,7 @@ export function startSocketServer(
                 //TODO implement error handling
                 void statusHandler.sendTurnoutMapState(socket, turnoutMap);
                 statusHandler.sendTrackState(socket);
+                statusHandler.sendHardwareState(socket, adapter);
             } else {
                 // Client incompatible so disconnect
                 socket.disconnect(true);

@@ -6,6 +6,7 @@ export interface DeviceDriver {
      * Used to identify the driver in use
      */
     name: string;
+    message: string;
     /**
      * Sets the speed of a loco
      * @param address Address of the loco
@@ -40,8 +41,13 @@ export interface DeviceDriver {
  * Used until a real driver is selected by the client
  */
 export class VirtualDriver implements DeviceDriver {
-    readonly name = 'Default';
+    readonly name = 'Virtual';
     private _notified = false; // Makes sure to only notify the user once, and only if a packet is actually sent
+    private _message = '';
+
+    get message() {
+        return this._message;
+    }
 
     setSpeed(address: number, speed: number, direction: number): Promise<void> {
         return new Promise<void>((resolve) => {
@@ -96,8 +102,8 @@ export class VirtualDriver implements DeviceDriver {
 }
 
 export enum AvailableDrivers {
-    VirtualDriver,
-    DCCExDriver,
+    VirtualDriver = 'Virtual Driver',
+    DCCExDriver = 'DCC-EX Driver',
 }
 
 // Exports the hardware drivers

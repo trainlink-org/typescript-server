@@ -13,7 +13,9 @@ import semver, { SemVer } from 'semver';
  */
 export async function startServer(serverConfig: ServerConfig) {
     // Create the new hardware adapter
-    const adapter = new HardwareAdapter();
+    const adapter = new HardwareAdapter((adapter) => {
+        io.emit('hardware/driverChanged', adapter.driverName);
+    });
 
     // Opens the database
     const dbConnection = await setupDB(
@@ -58,5 +60,6 @@ export interface ServerConfig {
     port: number;
     dbName?: string;
     logPath?: string;
+    name: string;
     productName: string;
 }

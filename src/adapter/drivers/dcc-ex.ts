@@ -1,3 +1,4 @@
+import type { HardwareAdapter } from '../index';
 import type { DeviceDriver } from '../drivers';
 import { ReadlineParser, SerialPort } from 'serialport';
 
@@ -6,22 +7,36 @@ import { ReadlineParser, SerialPort } from 'serialport';
  */
 export class DCCExDriver implements DeviceDriver {
     readonly name = 'DCC-EX';
+    private _message = '';
     private _port: SerialPort;
     private _parser: ReadlineParser;
+    private _adapter: HardwareAdapter;
+    private _driverChangedCallback: (adapter: HardwareAdapter) => void;
+
+    get message() {
+        return this._message;
+    }
 
     /**
      * Used to interface with DCC-EX command stations
      * @param serialPort The serial port to connect to the CS on
      * @param callback Called once the CS is connected
      */
-    constructor(serialPort: string, callback: () => void) {
-        console.log('Dcc ex driver');
+    constructor(
+        serialPort: string,
+        adapter: HardwareAdapter,
+        driverChangedCallback: (adapter: HardwareAdapter) => void,
+        callback: () => void
+    ) {
+        console.log('DCC-EX driver');
         this._port = new SerialPort({
             path: serialPort,
             baudRate: 115200,
         });
         this._parser = new ReadlineParser();
         this._setup(serialPort, callback);
+        this._adapter = adapter;
+        this._driverChangedCallback = driverChangedCallback;
     }
 
     private async _setup(serialPort: string, callback: () => void) {
@@ -38,6 +53,8 @@ export class DCCExDriver implements DeviceDriver {
             this._parser.on('data', (data) => {
                 if (data.toString().slice(0, 2) === '<i') {
                     resolve();
+                    this._message = data.toString();
+                    this._driverChangedCallback(this._adapter);
                 }
             });
         });
