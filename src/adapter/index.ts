@@ -1,9 +1,13 @@
-import { Direction, TurnoutState } from '@trainlink-org/trainlink-types';
+import {
+    Direction,
+    TurnoutState,
+    type HardwareDevice,
+} from '@trainlink-org/trainlink-types';
 import {
     VirtualDriver,
-    AvailableDrivers,
     type DeviceDriver,
     DCCExDriver,
+    availableDrivers,
 } from './drivers';
 
 export enum DriverStatus {
@@ -15,15 +19,54 @@ export enum DriverStatus {
 export class HardwareAdapter {
     private _driver: DeviceDriver;
     private _driverStatus: DriverStatus;
+    private _device: HardwareDevice;
     private _driverChangedCallback: (adapter: HardwareAdapter) => void;
 
     constructor(driverChangedCallback: (adapter: HardwareAdapter) => void) {
         this._driver = new VirtualDriver();
+        this._device = {
+            name: 'Virtual Device',
+            driver: 'Virtual',
+        };
         this._driverStatus = DriverStatus.Available;
         this._driverChangedCallback = driverChangedCallback;
     }
 
-    selectDriver(driver: AvailableDrivers, address?: string) {
+    get driverStatus() {
+        return this._driverStatus;
+    }
+
+    get driverName() {
+        return this._driver.name;
+    }
+
+    get device() {
+        return this._device;
+    }
+
+    get driverMsg() {
+        return this._driver.message;
+    }
+
+    get availableDrivers() {
+        // return Object.values(AvailableDrivers);
+        return availableDrivers;
+    }
+
+    get availableDevices(): Promise<HardwareDevice[]> {
+        return VirtualDriver.getDevices().then((devices) => {
+            return new Promise<HardwareDevice[]>((resolve) => {
+                DCCExDriver.getDevices().then((DCCEXDevices) => {
+                    DCCEXDevices.forEach((device) => {
+                        devices.push(device);
+                    });
+                    resolve(devices);
+                });
+            });
+        });
+    }
+
+    selectDriver(driver: string, address?: string) {
         console.log(`Switching to ${driver}`);
         this._driverStatus = DriverStatus.Switching;
         this._driver.close();
@@ -32,11 +75,11 @@ export class HardwareAdapter {
             this._driver = new VirtualDriver();
         } else {
             switch (driver) {
-                case AvailableDrivers.VirtualDriver:
+                case 'Virtual':
                     this._driver = new VirtualDriver();
                     this._driverStatus = DriverStatus.Available;
                     break;
-                case AvailableDrivers.DCCExDriver:
+                case 'DCC-EX':
                     this._driver = new DCCExDriver(
                         address,
                         this,
@@ -52,19 +95,24 @@ export class HardwareAdapter {
                     break;
             }
         }
+        console.log(this._device);
+        console.log({ driver: driver, address: address });
+        if (
+            this._device.driver !== driver &&
+            this._device.address !== address
+        ) {
+            this._device = {
+                name: 'Custom Device',
+                driver: driver,
+                address: address,
+            };
+        }
         this._driverChangedCallback(this);
     }
 
-    get driverStatus() {
-        return this._driverStatus;
-    }
-
-    get driverName() {
-        return this._driver.name;
-    }
-
-    get driverMsg() {
-        return '';
+    selectDevice(device: HardwareDevice) {
+        this._device = device;
+        this.selectDriver(device.driver, device.address);
     }
 
     locoSetSpeed(
