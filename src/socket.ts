@@ -28,6 +28,7 @@ import type { LocoStore } from './locos';
 
 import semver, { Range, SemVer } from 'semver';
 
+import pkg from '../package.json';
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -63,7 +64,14 @@ export function startSocketServer(
             if (
                 semver.satisfies(
                     versionString,
-                    new Range(`${serverVersion.major}.${serverVersion.minor}.x`)
+                    new Range(
+                        `${serverVersion.major}.${serverVersion.minor}.x`
+                    ),
+                    {
+                        includePrerelease: serverVersion.prerelease.length
+                            ? true
+                            : false,
+                    }
                 )
             ) {
                 // Client is compatible
@@ -72,6 +80,7 @@ export function startSocketServer(
                 socket.emit(
                     'metadata/handshake',
                     // serverVersion.name,
+                    pkg.name,
                     serverConfig.productName,
                     serverVersion.version
                 );
@@ -79,6 +88,7 @@ export function startSocketServer(
                 //TODO implement error handling
                 void statusHandler.sendTurnoutMapState(socket, turnoutMap);
                 statusHandler.sendTrackState(socket);
+                statusHandler.sendHardwareState(socket, adapter);
             } else {
                 // Client incompatible so disconnect
                 socket.disconnect(true);
@@ -218,6 +228,22 @@ export function startSocketServer(
                 routesConfig.changeCoordinate(id, coord, turnoutMap);
             }
         );
+        socket.on('hardware/getDevices', async () => {
+            console.log('Getting devices');
+            socket.emit(
+                'hardware/availableDevices',
+                await adapter.availableDevices
+            );
+            console.log(await adapter.availableDevices);
+        });
+        socket.on('hardware/setDriver', (driver, address) => {
+            adapter.selectDriver(driver, address);
+            socket.emit('hardware/newActiveDevice', adapter.device);
+        });
+        socket.on('hardware/setDevice', (device) => {
+            adapter.selectDevice(device);
+            socket.emit('hardware/newActiveDevice', device);
+        });
     });
     log('\nListening on port %d', serverConfig.port);
 }
