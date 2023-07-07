@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "prepublish": "npm run build",
+    "prepublishOnly": "npm run build",
     "start": "node dist/src/server.js"
   },
   "keywords": [
