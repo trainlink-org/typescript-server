@@ -67,6 +67,7 @@ export class PriorityQueue<T> {
 
     /**
      * The current number of elements in the queue
+     * @returns the number of elements in the queue
      */
     get size() {
         return this._items.length;

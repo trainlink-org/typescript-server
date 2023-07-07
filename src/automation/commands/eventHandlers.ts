@@ -28,15 +28,12 @@ export class onClose implements AutomationScript, EventHandler {
     private _turnoutID: number;
 
     constructor(turnoutID: number, children: AutomationCommand[]) {
-        console.log(turnoutID);
         this.children = children;
         this._turnoutID = turnoutID;
         this.scope = null;
     }
 
     async execute(scope: Scope) {
-        console.log(this);
-        // this.scope = scope;
         for (const child of this.children) {
             await child.execute(scope);
         }
@@ -74,15 +71,12 @@ export class onThrow implements AutomationScript, EventHandler {
     private _turnoutID: number;
 
     constructor(turnoutID: number, children: AutomationCommand[]) {
-        console.log(turnoutID);
         this.children = children;
         this._turnoutID = turnoutID;
         this.scope = null;
     }
 
     async execute(scope: Scope) {
-        console.log(this);
-        // this.scope = scope;
         for (const child of this.children) {
             await child.execute(scope);
         }

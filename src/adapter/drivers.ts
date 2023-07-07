@@ -1,4 +1,5 @@
 import type { HardwareDevice } from '@trainlink-org/trainlink-types';
+import { log } from '../logger';
 
 /**
  * Base type for a hardware driver
@@ -85,10 +86,10 @@ export class VirtualDriver extends DeviceDriver {
     setSpeed(address: number, speed: number, direction: number): Promise<void> {
         return new Promise<void>((resolve) => {
             if (!this._notified) {
-                console.log('Using default driver');
+                log('Using default driver');
                 this._notified = true;
             }
-            console.log(`SetSpeed => ${address} - ${speed} - ${direction}`);
+            log(`SetSpeed => ${address} - ${speed} - ${direction}`);
             resolve();
         });
     }
@@ -96,10 +97,10 @@ export class VirtualDriver extends DeviceDriver {
     emergencyStop(address: number): Promise<void> {
         return new Promise<void>((resolve) => {
             if (!this._notified) {
-                console.log('Using default driver');
+                log('Using default driver');
                 this._notified = true;
             }
-            console.log(`EStop => ${address}`);
+            log(`EStop => ${address}`);
             resolve();
         });
     }
@@ -107,10 +108,10 @@ export class VirtualDriver extends DeviceDriver {
     setTrackPower(state: boolean): Promise<void> {
         return new Promise<void>((resolve) => {
             if (!this._notified) {
-                console.log('Using default driver');
+                log('Using default driver');
                 this._notified = true;
             }
-            console.log(`TrackPower => ${state}`);
+            log(`TrackPower => ${state}`);
             resolve();
         });
     }
@@ -118,17 +119,17 @@ export class VirtualDriver extends DeviceDriver {
     setTurnoutState(turnoutID: number, state: number): Promise<void> {
         return new Promise<void>((resolve) => {
             if (!this._notified) {
-                console.log('Using default driver');
+                log('Using default driver');
                 this._notified = true;
             }
-            console.log(`SetTurnout => ${turnoutID} - ${state}`);
+            log(`SetTurnout => ${turnoutID} - ${state}`);
             resolve();
         });
     }
 
     close(): Promise<void> {
         return new Promise<void>((resolve) => {
-            console.log('Default driver closing');
+            log('Default driver closing');
             resolve();
         });
     }

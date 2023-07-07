@@ -1,17 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// import { adapter } from './index';
 import {
     Loco,
     type HardwareAdapter,
     type LocoIdentifier,
     type Direction,
 } from '@trainlink-org/trainlink-types';
-// import type { LocoIdentifier, Direction } from '@trainlink-org/trainlink-types';
 import { log } from './logger';
-// import { dbConnection } from './database';
 import { io } from './socket';
 import type { Database } from 'sqlite';
-// import { HardwareAdapter } from '@trainlink-org/trainlink-types';
 
 /**
  * A store for multiple Loco objects

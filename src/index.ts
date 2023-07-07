@@ -14,7 +14,6 @@ import semver, { SemVer } from 'semver';
 export async function startServer(serverConfig: ServerConfig) {
     // Create the new hardware adapter
     const adapter = new HardwareAdapter((adapter) => {
-        console.log(`Driver message: ${adapter.driverMsg}`);
         io.emit(
             'hardware/driverChanged',
             adapter.driverName,

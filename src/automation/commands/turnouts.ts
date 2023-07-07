@@ -1,4 +1,5 @@
 import type { AutomationCommand, Scope } from '../types';
+import { log } from '../../logger';
 
 import { TurnoutState } from '@trainlink-org/trainlink-types';
 
@@ -31,7 +32,7 @@ export class throwTurnout implements AutomationCommand {
 
         // Actually executes the function
         return new Promise<void>((resolve) => {
-            console.log(`Throw point ${this._id}`);
+            log(`Throw point ${this._id}`);
             scope.turnouts.setTurnout(this._id, TurnoutState.thrown);
             resolve();
         });
@@ -71,7 +72,7 @@ export class closeTurnout implements AutomationCommand {
 
         // Actually executes the function
         return new Promise<void>((resolve) => {
-            console.log(`Close point ${this._id}`);
+            log(`Close point ${this._id}`);
             scope.turnouts.setTurnout(this._id, TurnoutState.closed);
             resolve();
         });

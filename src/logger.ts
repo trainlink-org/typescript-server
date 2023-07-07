@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable no-console */
 import { isDebug } from './index';
 
 /**
@@ -14,6 +14,7 @@ export enum LogLevel {
  * Logs a message to stdout or stderr if debug is enabled
  * @param msg The message to log
  * @param level Describes the severity of the log message
+ * @param alwaysShow Whether the message should always be shown regardless of production mode
  */
 export function log(msg: unknown, level = LogLevel.Info, alwaysShow = false) {
     if (isDebug || alwaysShow) {

@@ -1,3 +1,4 @@
+import { log } from '../../logger';
 import type { AutomationCommand, Scope } from '../types';
 
 /**
@@ -25,9 +26,9 @@ export class delay implements AutomationCommand {
         scope.commandStartTime.push(new Date());
         scope.currentCommand[1] = this.toString();
         return new Promise<void>((resolve) => {
-            console.log(`Pausing for ${this._delayLength}`);
+            log(`Pausing for ${this._delayLength}`);
             setTimeout(() => {
-                console.log(`Delay finished (${this._delayLength})`);
+                log(`Delay finished (${this._delayLength})`);
                 resolve();
             }, this._delayLength);
         });

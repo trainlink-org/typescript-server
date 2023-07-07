@@ -23,6 +23,7 @@ import {
 import { EventEmitter } from 'events';
 import type { TurnoutMap } from '../turnouts';
 import type { Database } from 'sqlite';
+import { log } from '../logger';
 
 /**
  * Provides the environment to store and run automations
@@ -46,6 +47,8 @@ export class Runtime {
     /**
      * Creates a new runtime
      * @param store Store containing the locos the runtime can use
+     * @param turnoutMap The TurnoutMap instance
+     * @param dbConnection Used to fetch and store in the db
      * @param callback A callback called when a running automation changes
      */
     constructor(
@@ -106,7 +109,7 @@ export class Runtime {
      * @param locoID The id of the loco to allocate to the script (not needed for routes)
      */
     async runScript(scriptId: number, locoID?: LocoIdentifier) {
-        console.log(`Running script ${scriptId}...`);
+        log(`Running script ${scriptId}...`);
         const script = this._scriptsStore.get(scriptId);
         if (script) {
             let scope: Scope;
@@ -120,7 +123,7 @@ export class Runtime {
             this._runningScriptsStore.set(
                 pid,
                 new ScriptRunner(pid, script, scope, () => {
-                    console.log('Finished!');
+                    log('Finished!');
                     this._runningScriptsStore.delete(pid);
                     this._updateCallback(this.getRunningAutomations());
                     this._pidAllocator.freePID(pid);
@@ -164,15 +167,14 @@ export class Runtime {
                     description: value.script.description,
                     locoAddress: value.loco.address,
                 };
-            } else {
-                return {
-                    name: value.script.name,
-                    pid: value.pid,
-                    type: value.script.type,
-                    status: value.status,
-                    description: value.script.description,
-                };
             }
+            return {
+                name: value.script.name,
+                pid: value.pid,
+                type: value.script.type,
+                status: value.status,
+                description: value.script.description,
+            };
         });
     }
 
@@ -255,7 +257,6 @@ export class Runtime {
 
         // Handles turnout events
         const turnoutEvent = () => {
-            console.log('Turnout event');
             if (eventArray[1] === 'throw') {
                 const handlerScript = this._eventHandlers.turnouts.throw.get(
                     Number(eventArray[2])
@@ -284,7 +285,7 @@ export class Runtime {
                 this._runningScriptsStore.set(
                     pid,
                     new ScriptRunner(pid, script, scope, () => {
-                        console.log('Finished!');
+                        log('Finished!');
                         this._runningScriptsStore.delete(pid);
                         this._updateCallback(this.getRunningAutomations());
                         this._pidAllocator.freePID(pid);
@@ -382,9 +383,9 @@ export class ScriptRunner {
     async run() {
         this._scope.running = true;
         this._scope.bus = this._bus;
-        console.log('ScriptRunner running...');
+        log('ScriptRunner running...');
         await this.script.execute(this._scope);
-        console.log('ScriptRunner finished');
+        log('ScriptRunner finished');
         this._callback();
     }
 
@@ -401,28 +402,24 @@ export class ScriptRunner {
      */
     pause() {
         this._pauseTime = new Date();
-        console.log(this._scope.currentCommand);
-        // const currentCommand = this.scope.currentCommand.map((a => {return a;}));
+        log(this._scope.currentCommand);
         this._scope.running = false;
         const scopeCopy = Object.assign({}, this._scope);
         scopeCopy.running = true;
         new estop().execute(scopeCopy);
-        // this.scope.currentCommand = currentCommand;
-        console.log(this._scope.currentCommand);
+        log(this._scope.currentCommand);
     }
 
     /**
      * Resume the automation if it's paused
      */
     async resume() {
-        console.log(this._scope.currentCommand);
         this._scope.running = true;
         if (this._scope.currentCommand.length > 0) {
             if (
                 this._scope.currentCommand.length === 2 &&
                 this._scope.currentCommand[1].split('(')[0] === 'DELAY'
             ) {
-                console.log(this._scope.commandStartTime);
                 const startSecond = Math.round(
                     this._scope.commandStartTime[
                         this._scope.commandStartTime.length - 2
@@ -432,32 +429,19 @@ export class ScriptRunner {
                 const totalSecond = Number(
                     this._scope.currentCommand[1].split('(')[1].split(')')[0]
                 );
-                console.log(
-                    this._scope.commandStartTime[
-                        this._scope.commandStartTime.length - 2
-                    ]
-                );
-                console.log(this._pauseTime);
-                console.log(totalSecond);
-                console.log(pauseSecond - startSecond);
 
                 const newTime = totalSecond - (pauseSecond - startSecond);
-                console.log(`Resuming with ${newTime} seconds to go`);
+                log(`Resuming with ${newTime} seconds to go`);
                 this._scope.currentCommand[1] = `DELAY(${newTime})`;
             }
-            console.log('Parsing');
-            console.log(this._scope.currentCommand);
             let script = 'AUTOMATION(0)';
             for (const command of this._scope.currentCommand) {
                 script += ` ${command}`;
             }
             script += ' DONE';
-            console.log(script);
             await lexer(script)
                 .then((output) => parser(output))
                 .then((commands) => {
-                    console.log('Command:');
-                    console.log(commands);
                     return commands[0].execute(this._scope);
                 })
                 .then(() => {
@@ -470,6 +454,7 @@ export class ScriptRunner {
 
     /**
      * Find out if an automation is paused
+     * @returns The state of the automation
      */
     get status() {
         return this._scope.running
@@ -479,6 +464,7 @@ export class ScriptRunner {
 
     /**
      * Get the loco used by the automation
+     * @returns the Loco object
      */
     get loco() {
         return this._scope.loco;
@@ -551,7 +537,7 @@ class ScriptStoreDB implements ScriptStoreProvider {
      * @returns A promise that resolves with the automation scripts once loaded
      */
     async loadScripts(): Promise<AutomationScript[]> {
-        const fetch = new Promise<[string, string][]>((resolve, reject) => {
+        const fetch = new Promise<[string, string][]>((resolve) => {
             const returnArray: [string, string][] = [];
             type Result = {
                 script: string;

@@ -1,4 +1,3 @@
-// import { store, trackPower, turnoutMap } from '../index';
 import { trackPower } from '../index';
 import type { TurnoutPacket } from '@trainlink-org/trainlink-types';
 import { log } from '../logger';
@@ -12,6 +11,7 @@ import { availableDrivers } from '../adapter/drivers';
 /**
  * Constructs a packet containing the current state of the locoStore
  * @param socket socket to send the packet to
+ * @param store The LocoStore instance
  */
 export function sendLocoState(socket: CustomSocket, store: LocoStore) {
     const locosArray: string[] = [];
@@ -25,6 +25,7 @@ export function sendLocoState(socket: CustomSocket, store: LocoStore) {
 /**
  * Constructs a packet containing the current state of all the turnouts
  * @param socket The socket to send the packet to
+ * @param turnoutMap The TurnoutMap used to set the turnout
  */
 export async function sendTurnoutMapState(
     socket: CustomSocket,
@@ -47,6 +48,11 @@ export function sendTrackState(socket: CustomSocket) {
     socket.emit('metadata/initialState/trackPower', trackPower.state);
 }
 
+/**
+ * Finds the active driver and device and sends it to a client
+ * @param socket The socket to send the packet to
+ * @param adapter The hardware adapter to retrieve the state from
+ */
 export function sendHardwareState(
     socket: CustomSocket,
     adapter: HardwareAdapter

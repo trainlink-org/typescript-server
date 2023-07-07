@@ -10,6 +10,8 @@ import {
     availableDrivers,
 } from './drivers';
 
+import { log } from '../logger';
+
 export enum DriverStatus {
     Available,
     Switching,
@@ -67,11 +69,11 @@ export class HardwareAdapter {
     }
 
     selectDriver(driver: string, address?: string) {
-        console.log(`Switching to ${driver}`);
+        log(`Switching to ${driver}`);
         this._driverStatus = DriverStatus.Switching;
         this._driver.close();
         if (address === undefined) {
-            console.log('Address undefined');
+            log('Address undefined');
             this._driver = new VirtualDriver();
         } else {
             switch (driver) {
@@ -95,8 +97,8 @@ export class HardwareAdapter {
                     break;
             }
         }
-        console.log(this._device);
-        console.log({ driver: driver, address: address });
+        log(this._device);
+        log({ driver: driver, address: address });
         if (
             this._device.driver !== driver &&
             this._device.address !== address

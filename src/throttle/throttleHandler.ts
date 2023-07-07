@@ -15,8 +15,10 @@ import type { Server, Socket } from 'socket.io';
  * Used to update the speed of a loco in response to a socket packet and update other clients
  * @param identifier The identifier of the loco
  * @param speed The new speed
+ * @param throttleID The ID of the throttle that created the change
  * @param io The socket.io server object to update other clients
  * @param socket The socket instance that sent the message
+ * @param store The LocoStore instance
  */
 export function speedChange(
     identifier: LocoIdentifier,
@@ -37,6 +39,7 @@ export function speedChange(
  * Used to flip the direction of a loco in response to a socket packet and update other clients
  * @param identifier The identifier of the loco
  * @param io The socket.io server object to update other clients
+ * @param store The LocoStore instance
  */
 export function changeDirection(
     identifier: LocoIdentifier,
@@ -66,6 +69,7 @@ export function changeDirection(
  * @param direction The new direction
  * @param io The socket.io server object to update other clients
  * @param socket The socket instance that sent the message
+ * @param store The LocoStore instance
  */
 export function setDirection(
     identifier: LocoIdentifier,
@@ -95,6 +99,7 @@ export function setDirection(
  * @param functionNum The function number
  * @param state The state to set it to
  * @param io The socket.io server object to update other clients
+ * @param store The LocoStore instance
  */
 export function setFunction(
     identifier: LocoIdentifier,
@@ -117,6 +122,7 @@ export function setFunction(
  * @param state Track power state to set
  * @param io The socket.io server object to update other clients
  * @param socket The socket instance that sent the message
+ * @param adapter The hardware adapter instance
  */
 export function setTrackPower(
     state: boolean,
@@ -126,6 +132,5 @@ export function setTrackPower(
 ) {
     adapter.trackPowerSet(state);
     trackPower.state = state;
-    console.log(state);
     io.emit('throttle/trackPowerUpdate', state, socket.id);
 }

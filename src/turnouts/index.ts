@@ -1,7 +1,6 @@
 import { TurnoutGraph } from './graph';
 import { findPath, pathToTurnouts } from './routeFinder';
 
-// import { adapter, runtime } from '../index';
 import {
     type Destination,
     type Turnout,
@@ -12,12 +11,11 @@ import {
     type HardwareAdapter,
 } from '@trainlink-org/trainlink-types';
 import { io } from '../socket';
-// import { dbConnection } from '../database';
 
 import type { Socket } from 'socket.io';
 import type { Runtime } from '../automation/runtime';
 import type { Database } from 'sqlite';
-// import { format as sqlFormat } from 'mysql';
+import { log } from '../logger';
 
 type turnoutId = number;
 
@@ -145,9 +143,7 @@ export class TurnoutMap {
                     );
                     io.emit('routes/routeUpdate', path);
                 })
-                .catch((reason) =>
-                    console.log(`Unable to create route: ${reason}`)
-                );
+                .catch((reason) => log(`Unable to create route: ${reason}`));
         }
     }
 

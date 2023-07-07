@@ -3,6 +3,8 @@ import { DeviceDriver } from '../drivers';
 import { ReadlineParser, SerialPort } from 'serialport';
 import type { HardwareDevice } from '@trainlink-org/trainlink-types';
 
+import { log } from '../../logger';
+
 /**
  * Used to interface with DCC-EX command stations
  */
@@ -21,6 +23,8 @@ export class DCCExDriver extends DeviceDriver {
     /**
      * Used to interface with DCC-EX command stations
      * @param serialPort The serial port to connect to the CS on
+     * @param adapter The parent hardware adapter
+     * @param driverChangedCallback to be called any time the driverMsg changes
      * @param callback Called once the CS is connected
      */
     constructor(
@@ -30,7 +34,7 @@ export class DCCExDriver extends DeviceDriver {
         callback: () => void
     ) {
         super('DCC-EX');
-        console.log('DCC-EX driver');
+        log('DCC-EX driver');
         this._port = new SerialPort({
             path: serialPort,
             baudRate: 115200,
@@ -68,9 +72,9 @@ export class DCCExDriver extends DeviceDriver {
         this._message = this._message.substring(2, this._message.length - 1);
         this._driverChangedCallback(this._adapter);
         callback();
-        // console.log(this._message);
+        // log(this._message);
         this._parser.on('data', (data) => {
-            console.log('Rx [' + data.toString() + ']');
+            log('Rx [' + data.toString() + ']');
         });
     }
 
@@ -78,7 +82,6 @@ export class DCCExDriver extends DeviceDriver {
         return new Promise<string>((resolve) => {
             this._parser.on('data', (data) => {
                 if (data.toString().slice(0, 2) === '<i') {
-                    // console.log(data.toString());
                     // this._message = data.toString();
                     resolve(data.toString());
                 }
@@ -89,7 +92,7 @@ export class DCCExDriver extends DeviceDriver {
     setSpeed(address: number, speed: number, direction: number): Promise<void> {
         return new Promise<void>((resolve) => {
             const packet = `<t 1 ${address} ${speed} ${direction}>`;
-            console.log('Tx [' + packet + ']');
+            log('Tx [' + packet + ']');
             this._port.write(packet);
             resolve();
         });
@@ -98,7 +101,7 @@ export class DCCExDriver extends DeviceDriver {
     emergencyStop(address: number): Promise<void> {
         return new Promise<void>((resolve) => {
             const packet = `<t 1 ${address} -1 1>`;
-            console.log('Tx [' + packet + ']');
+            log('Tx [' + packet + ']');
             this._port.write(packet);
             resolve();
         });
@@ -107,7 +110,7 @@ export class DCCExDriver extends DeviceDriver {
     setTrackPower(state: boolean): Promise<void> {
         return new Promise<void>((resolve) => {
             const packet = `<${Number(state)}>`;
-            console.log('Tx [' + packet + ']');
+            log('Tx [' + packet + ']');
             this._port.write(packet);
             resolve();
         });
@@ -116,7 +119,7 @@ export class DCCExDriver extends DeviceDriver {
     setTurnoutState(turnoutID: number, state: number): Promise<void> {
         return new Promise<void>((resolve) => {
             const packet = `<T ${turnoutID} ${state}>`;
-            console.log('Tx [' + packet + ']');
+            log('Tx [' + packet + ']');
             this._port.write(packet);
             resolve();
         });
@@ -125,7 +128,7 @@ export class DCCExDriver extends DeviceDriver {
     close(): Promise<void> {
         return new Promise<void>((resolve) => {
             this._port.close();
-            console.log('Driver closed');
+            log('Driver closed');
             resolve();
         });
     }
