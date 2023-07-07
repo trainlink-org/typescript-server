@@ -60,10 +60,6 @@ export abstract class DeviceDriver {
  * Used until a real driver is selected by the client
  */
 export class VirtualDriver extends DeviceDriver {
-    // readonly name = 'Virtual';
-    private _notified = false; // Makes sure to only notify the user once, and only if a packet is actually sent
-    // private _message = '';
-
     constructor() {
         super('Virtual');
     }
@@ -85,10 +81,6 @@ export class VirtualDriver extends DeviceDriver {
 
     setSpeed(address: number, speed: number, direction: number): Promise<void> {
         return new Promise<void>((resolve) => {
-            if (!this._notified) {
-                log('Using default driver');
-                this._notified = true;
-            }
             log(`SetSpeed => ${address} - ${speed} - ${direction}`);
             resolve();
         });
@@ -96,10 +88,6 @@ export class VirtualDriver extends DeviceDriver {
 
     emergencyStop(address: number): Promise<void> {
         return new Promise<void>((resolve) => {
-            if (!this._notified) {
-                log('Using default driver');
-                this._notified = true;
-            }
             log(`EStop => ${address}`);
             resolve();
         });
@@ -107,10 +95,6 @@ export class VirtualDriver extends DeviceDriver {
 
     setTrackPower(state: boolean): Promise<void> {
         return new Promise<void>((resolve) => {
-            if (!this._notified) {
-                log('Using default driver');
-                this._notified = true;
-            }
             log(`TrackPower => ${state}`);
             resolve();
         });
@@ -118,10 +102,6 @@ export class VirtualDriver extends DeviceDriver {
 
     setTurnoutState(turnoutID: number, state: number): Promise<void> {
         return new Promise<void>((resolve) => {
-            if (!this._notified) {
-                log('Using default driver');
-                this._notified = true;
-            }
             log(`SetTurnout => ${turnoutID} - ${state}`);
             resolve();
         });
@@ -129,7 +109,7 @@ export class VirtualDriver extends DeviceDriver {
 
     close(): Promise<void> {
         return new Promise<void>((resolve) => {
-            log('Default driver closing');
+            log('Virtual driver closing');
             resolve();
         });
     }
