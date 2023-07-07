@@ -61,5 +61,8 @@
     "socket.io-client": "^4.6.1",
     "sqlite": "^4.2.1",
     "sqlite3": "^5.1.6"
+  },
+  "overrides": {
+    "semver": "^7.5.2"
   }
 }
