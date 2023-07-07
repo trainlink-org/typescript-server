@@ -65,6 +65,5 @@ export interface ServerConfig {
     port: number;
     dbName?: string;
     logPath?: string;
-    name: string;
     productName: string;
 }

@@ -20,7 +20,6 @@ const serverConfig: ServerConfig = {
     configPath: process.env.TL_DB_PATH || osConfigDir,
     port: parseInt(process.env.TL_PORT || '6868'),
     productName: 'TrainLink Server',
-    name: pkg.name,
 };
 
 log('Starting Server...', undefined, true);

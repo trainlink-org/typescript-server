@@ -28,6 +28,7 @@ import type { LocoStore } from './locos';
 
 import semver, { Range, SemVer } from 'semver';
 
+import pkg from '../package.json';
 /** The socket.io server */
 export let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -79,7 +80,7 @@ export function startSocketServer(
                 socket.emit(
                     'metadata/handshake',
                     // serverVersion.name,
-                    serverConfig.name,
+                    pkg.name,
                     serverConfig.productName,
                     serverVersion.version
                 );
