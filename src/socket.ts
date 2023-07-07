@@ -37,6 +37,14 @@ export type SocketIoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 
 export let userCount = 0;
 
+/**
+ * Starts the socket server and handles incoming socket requests
+ * @param serverConfig Configuration settings for the server
+ * @param store LocoStore used by the server
+ * @param runtime Automation runtime used by the server
+ * @param turnoutMap Turnout map used by the server
+ * @param adapter Hardware adapter used by the server
+ */
 export function startSocketServer(
     // portString: string | undefined,
     serverConfig: ServerConfig,
@@ -115,7 +123,6 @@ export function startSocketServer(
             throttleHandler.changeDirection(identifier, io, store);
         });
         socket.on('throttle/setDirection', (identifier, direction) => {
-            console.log(direction);
             throttleHandler.setDirection(
                 identifier,
                 direction,
@@ -140,7 +147,7 @@ export function startSocketServer(
             await runtime
                 .addScriptFile(file)
                 .catch((error: AutomationError) => {
-                    console.log(error.message);
+                    log(error.message);
                     socket.emit(
                         'automation/processingError',
                         error.message
@@ -229,12 +236,10 @@ export function startSocketServer(
             }
         );
         socket.on('hardware/getDevices', async () => {
-            console.log('Getting devices');
             socket.emit(
                 'hardware/availableDevices',
                 await adapter.availableDevices
             );
-            console.log(await adapter.availableDevices);
         });
         socket.on('hardware/setDriver', (driver, address) => {
             adapter.selectDriver(driver, address);
@@ -246,8 +251,4 @@ export function startSocketServer(
         });
     });
     log('\nListening on port %d', serverConfig.port);
-}
-
-function validateEnvInt(port: string | undefined, fallback: number) {
-    return parseInt(port ?? fallback.toString()) || fallback;
 }

@@ -1,17 +1,17 @@
-// import { store } from '../index';
-
 import type { LocoStore } from '../locos';
+import { log } from '../logger';
 
 /**
  * Validates if a new loco name is valid
  * @param name The name to validate
+ * @param store The LocoStore instance
  * @returns True if valid, False if not
  */
 export async function validateName(
     name: string,
     store: LocoStore
 ): Promise<boolean> {
-    console.log(`Validating name (${name})`);
+    log(`Validating name (${name})`);
     // Start by assuming input is valid, set to invalid if it fails a condition
     let isCorrect = true;
     // Check if the name is empty
@@ -30,7 +30,7 @@ export async function validateName(
         isCorrect = false;
     }
     if (!isCorrect) {
-        console.log('Name validation failed');
+        log('Name validation failed');
     }
     return isCorrect;
 }
@@ -38,13 +38,14 @@ export async function validateName(
 /**
  * Validates if a new loco address is valid
  * @param address The address to validate
+ * @param store The LocoStore instance
  * @returns True if valid, False if not
  */
 export async function validateAddress(
     address: number,
     store: LocoStore
 ): Promise<boolean> {
-    console.log(`Validating address (${address})`);
+    log(`Validating address (${address})`);
     let isCorrect = true;
     if (isNaN(address)) {
         isCorrect = false;
@@ -63,7 +64,7 @@ export async function validateAddress(
         isCorrect = false;
     }
     if (!isCorrect) {
-        console.log('Address validation failed');
+        log('Address validation failed');
     }
     return isCorrect;
 }
@@ -71,13 +72,14 @@ export async function validateAddress(
 /**
  * Validates if a edited loco's current address is valid
  * @param address The address to validate
+ * @param store The LocoStore instance
  * @returns True if valid, False if not
  */
 export async function validateCurrentAddress(
     address: number,
     store: LocoStore
 ): Promise<boolean> {
-    console.log(`Validating current address (${address})`);
+    log(`Validating current address (${address})`);
     let isCorrect = true;
     if (isNaN(address)) {
         isCorrect = false;
@@ -96,7 +98,7 @@ export async function validateCurrentAddress(
         isCorrect = false;
     }
     if (!isCorrect) {
-        console.log('Current address validation failed');
+        log('Current address validation failed');
     }
     return isCorrect;
 }
@@ -106,6 +108,7 @@ export async function validateCurrentAddress(
  * @param oldAddress The old address of the loco
  * @param newName The new name for the loco
  * @param newAddress The new address for a loco
+ * @param store The LocoStore instance
  * @returns True if valid, False if not
  */
 export async function validateUpdatedLoco(

@@ -108,6 +108,7 @@ export class TurnoutGraph {
 
     /**
      * The total number of vertices in the graph
+     * @returns The number of vertices in the graph
      */
     get vertices() {
         return this._verticesNum;
@@ -115,6 +116,7 @@ export class TurnoutGraph {
 
     /**
      * The total number of edges in the graph
+     * @returns The number of edges in the graph
      */
     get edges() {
         return this._edgesNum;

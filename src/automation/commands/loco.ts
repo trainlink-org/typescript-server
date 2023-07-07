@@ -1,3 +1,4 @@
+import { log } from '../../logger';
 import type { AutomationCommand, Scope } from '../types';
 
 import { Direction } from '@trainlink-org/trainlink-types';
@@ -26,7 +27,7 @@ export class estop implements AutomationCommand {
         // Actually executes the command
         return new Promise<void>((resolve) => {
             if (scope.loco) {
-                console.log(`Estop loco ${scope.loco.address}`);
+                log(`Estop loco ${scope.loco.address}`);
                 scope.loco.direction = Direction.stopped;
                 scope.loco.speed = 0;
             }
@@ -68,7 +69,7 @@ export class fwd implements AutomationCommand {
                 if (this._newSpeed === -1) {
                     new estop().execute(scope);
                 } else {
-                    console.log(
+                    log(
                         `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
                     );
                     scope.loco.direction = Direction.forward;
@@ -113,7 +114,7 @@ export class rev implements AutomationCommand {
                 if (this._newSpeed === -1) {
                     new estop().execute(scope);
                 } else {
-                    console.log(
+                    log(
                         `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
                     );
                     scope.loco.direction = Direction.reverse;
@@ -155,7 +156,7 @@ export class speed implements AutomationCommand {
         scope.currentCommand = [''];
         return new Promise<void>((resolve) => {
             if (scope.loco) {
-                console.log(
+                log(
                     `Move loco ${scope.loco.address} at speed ${this._newSpeed}`
                 );
                 scope.loco.speed = this._newSpeed;
@@ -190,7 +191,7 @@ export class stop implements AutomationCommand {
         scope.currentCommand = [''];
         return new Promise<void>((resolve) => {
             if (scope.loco) {
-                console.log(`Stopping loco ${scope.loco.address}`);
+                log(`Stopping loco ${scope.loco.address}`);
                 scope.loco.speed = 0;
             }
             resolve();

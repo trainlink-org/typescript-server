@@ -1,6 +1,5 @@
 import { type ServerConfig, startServer } from '.';
 import { log } from './logger';
-import pkg from '../package.json';
 
 const osConfigDir = (() => {
     switch (process.platform) {
