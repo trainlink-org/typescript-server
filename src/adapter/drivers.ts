@@ -18,8 +18,8 @@ export abstract class DeviceDriver {
     abstract get message(): string;
 
     static getDevices(): Promise<HardwareDevice[]> {
-        return new Promise<HardwareDevice[]>(() => {
-            return [];
+        return new Promise<HardwareDevice[]>((resolve) => {
+            resolve([]);
         });
     }
     /**
