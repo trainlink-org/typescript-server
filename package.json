@@ -8,7 +8,7 @@
     "dist/src/"
   ],
   "scripts": {
-    "test": "jest",
+    "test": "NODE_ENV=development jest",
     "docs": "typedoc",
     "build": "tsc --module commonjs",
     "dev": "NODE_ENV=development nodemon src/server.ts",

@@ -32,7 +32,7 @@ export class LocoStore {
         this.nameStore.set(loco.name, loco.address);
         const sql = 'INSERT INTO locos (name, address) VALUES (?,?);';
         const inserts = [loco.name, loco.address];
-        this._dbConnection.all(sql, inserts).then((results) => {
+        this._dbConnection.run(sql, inserts).then((results) => {
             log(results);
         });
     }
