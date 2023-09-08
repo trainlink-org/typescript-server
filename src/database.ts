@@ -187,6 +187,7 @@ function checkTables(dbConnection: Database): Promise<void> {
                         CREATE TABLE Nodes (
                             nodeID INTEGER PRIMARY KEY AUTOINCREMENT,
                             name TEXT,
+                            description TEXT,
                             nodeType TEXT,
                             coordinate TEXT,
                             state BOOLEAN

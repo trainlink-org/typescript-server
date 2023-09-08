@@ -7,6 +7,7 @@ import {
     type TurnoutLink,
     type RouteObject,
     type Coordinate,
+    type Node,
     TurnoutState,
     type HardwareAdapter,
 } from '@trainlink-org/trainlink-types';
@@ -61,7 +62,7 @@ export class TurnoutMap {
             this._runtime?.triggerEvent(
                 `turnout/${
                     state === TurnoutState.closed ? 'close' : 'throw'
-                }/${id}`
+                }/${id}`,
             );
             io.emit('routes/turnoutUpdate', turnout.id, turnout.state);
             //TODO implement error handling
@@ -86,13 +87,13 @@ export class TurnoutMap {
             await findPath(start, end, this._turnoutGraph)
                 .then(
                     (path): Promise<RouteObject> =>
-                        pathToTurnouts(path, this, this._turnoutGraph)
+                        pathToTurnouts(path, this, this._turnoutGraph),
                 )
                 .then((path) => {
                     this._clearRoute(path);
                     path.turnouts.forEach(async (newTurnoutState) => {
                         const turnout = await this.getTurnout(
-                            newTurnoutState.id
+                            newTurnoutState.id,
                         );
                         if (
                             turnout &&
@@ -104,7 +105,7 @@ export class TurnoutMap {
                                     turnout.state === TurnoutState.closed
                                         ? 'close'
                                         : 'throw'
-                                }/${turnout.id}`
+                                }/${turnout.id}`,
                             );
                             this._adapter.turnoutSet(turnout.id, turnout.state);
                             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -139,7 +140,7 @@ export class TurnoutMap {
                         'routes/setRouteComponents',
                         destinations,
                         turnouts,
-                        links
+                        links,
                     );
                     io.emit('routes/routeUpdate', path);
                 })
@@ -262,7 +263,7 @@ export class TurnoutMap {
                     .all(sql, inserts)
                     .then((results: Results) => {
                         results.forEach((result) => {
-                            turnout.connections.push(result.idturnoutLinks);
+                            // turnout.connections.push(result.idturnoutLinks);
                         });
                     });
             });
@@ -337,90 +338,138 @@ export class TurnoutMap {
      * @returns All the defined destinations
      */
     getDestinations(): Promise<Destination[]> {
-        return new Promise<Destination[]>((resolve) => {
-            type Results = {
-                iddestinations: number;
-                name: string | null;
-                description: string | null;
-                coordinate: string;
-            }[];
-            this._dbConnection
-                .all('SELECT * FROM destinations;')
-                .then((results: Results) => {
-                    const destinations: Destination[] = results.map((value) => {
-                        return {
-                            id: value.iddestinations,
-                            name: value.name || '',
-                            description: value.description || '',
-                            state: TurnoutState.closed,
-                            coordinate: JSON.parse(value.coordinate),
-                            connections: [],
-                        };
-                    });
-                    resolve(destinations);
+        type Results = {
+            nodeID: number;
+            name: string;
+            description: string;
+            nodeType: string;
+            coordinate: string;
+            state: boolean;
+        }[];
+        return this._dbConnection
+            .all('SELECT * FROM Nodes WHERE nodeType = "destination"')
+            .then((results: Results) => {
+                return results.map((result) => {
+                    return {
+                        id: result.nodeID,
+                        name: result.name,
+                        description: result.description,
+                        coordinate: JSON.parse(result.coordinate),
+                    };
                 });
-        }).then((destinations) => {
-            destinations.forEach((destination) => {
-                const sql =
-                    'SELECT idturnoutLinks FROM turnoutLinks WHERE start_dest = ?';
-                const inserts = [destination.id];
-                type Results = {
-                    idturnoutLinks: number;
-                }[];
-                this._dbConnection
-                    .all(sql, inserts)
-                    .then((results: Results) => {
-                        results.forEach((result) => {
-                            destination.connections.push(result.idturnoutLinks);
-                        });
-                    });
             });
-            return destinations;
+        // return new Promise<Destination[]>((resolve) => {
+        //     type Results = {
+        //         iddestinations: number;
+        //         name: string | null;
+        //         description: string | null;
+        //         coordinate: string;
+        //     }[];
+        //     this._dbConnection
+        //         .all('SELECT * FROM destinations;')
+        //         .then((results: Results) => {
+        //             const destinations: Destination[] = results.map((value) => {
+        //                 return {
+        //                     id: value.iddestinations,
+        //                     name: value.name || '',
+        //                     description: value.description || '',
+        //                     state: TurnoutState.closed,
+        //                     coordinate: JSON.parse(value.coordinate),
+        //                     connections: [],
+        //                 };
+        //             });
+        //             resolve(destinations);
+        //         });
+        // }).then((destinations) => {
+        //     destinations.forEach((destination) => {
+        //         const sql =
+        //             'SELECT idturnoutLinks FROM turnoutLinks WHERE start_dest = ?';
+        //         const inserts = [destination.id];
+        //         type Results = {
+        //             idturnoutLinks: number;
+        //         }[];
+        //         this._dbConnection.all(sql, inserts);
+        //         // .then((results: Results) => {
+        //         //     results.forEach((result) => {
+        //         //         destination.connections.push(result.idturnoutLinks);
+        //         //     });
+        //         // });
+        //     });
+        //     return destinations;
+        // });
+    }
+
+    getDestination(id: number): Promise<Destination> {
+        const sql =
+            'SELECT nodeID id, name, description, coordinate FROM Nodes WHERE nodeType = "destination" AND nodeID = ?';
+        const inserts = [id];
+        return this._dbConnection.get(sql, inserts).catch((reason) => {
+            throw reason;
+        });
+        // return this.getNode(id).then((node) => {
+        //     if (node.type === 'destination') {
+        //         return {
+        //             id: node.id,
+        //             name: node.name,
+        //             coordinate: node.coordinate,
+        //             description: '',
+        //         };
+        //     }
+        //     throw 'Not destination';
+        // });
+        // return new Promise<Destination>((resolve) => {
+        //     type Results = {
+        //         iddestinations: number;
+        //         name: string | null;
+        //         description: string | null;
+        //         coordinate: string;
+        //     }[];
+        //     const sql = 'SELECT * FROM destinations WHERE iddestinations = ?';
+        //     const inserts = [id];
+        //     this._dbConnection.all(sql, inserts).then((results: Results) => {
+        //         // console.log(results);
+        //         const destinations: Destination[] = results.map((value) => {
+        //             return {
+        //                 id: value.iddestinations,
+        //                 name: value.name || '',
+        //                 description: value.description || '',
+        //                 state: TurnoutState.closed,
+        //                 coordinate: JSON.parse(value.coordinate),
+        //                 connections: [],
+        //             };
+        //         });
+        //         resolve(destinations[0]);
+        //     });
+        // }).then((destination) => {
+        //     if (destination) {
+        //         const sql =
+        //             'SELECT idturnoutLinks FROM turnoutLinks WHERE start_dest = ?';
+        //         const inserts = [destination.id];
+        //         type Results = {
+        //             idturnoutLinks: number;
+        //         }[];
+        //         this._dbConnection
+        //             .all(sql, inserts)
+        //             .then((results: Results) => {
+        //                 results.forEach((result) => {
+        //                     destination.connections.push(result.idturnoutLinks);
+        //                 });
+        //             });
+        //     }
+        //     return destination;
+        // });
+    }
+
+    getNode(id: number): Promise<Node> {
+        const sql = 'SELECT * FROM Nodes WHERE nodeID = ?;';
+        const inserts = [id];
+        return this._dbConnection.get(sql, inserts).catch((reason) => {
+            throw reason;
         });
     }
 
-    async getDestination(id: number): Promise<Destination> {
-        return new Promise<Destination>((resolve) => {
-            type Results = {
-                iddestinations: number;
-                name: string | null;
-                description: string | null;
-                coordinate: string;
-            }[];
-            const sql = 'SELECT * FROM destinations WHERE iddestinations = ?';
-            const inserts = [id];
-            this._dbConnection.all(sql, inserts).then((results: Results) => {
-                // console.log(results);
-                const destinations: Destination[] = results.map((value) => {
-                    return {
-                        id: value.iddestinations,
-                        name: value.name || '',
-                        description: value.description || '',
-                        state: TurnoutState.closed,
-                        coordinate: JSON.parse(value.coordinate),
-                        connections: [],
-                    };
-                });
-                resolve(destinations[0]);
-            });
-        }).then((destination) => {
-            if (destination) {
-                const sql =
-                    'SELECT idturnoutLinks FROM turnoutLinks WHERE start_dest = ?';
-                const inserts = [destination.id];
-                type Results = {
-                    idturnoutLinks: number;
-                }[];
-                this._dbConnection
-                    .all(sql, inserts)
-                    .then((results: Results) => {
-                        results.forEach((result) => {
-                            destination.connections.push(result.idturnoutLinks);
-                        });
-                    });
-            }
-            return destination;
-        });
+    getNodes(): Promise<Node[]> {
+        return this._dbConnection.all('SELECT * FROM Nodes');
     }
 
     /**
@@ -474,7 +523,7 @@ export class TurnoutMap {
                                         startActive: false,
                                         endActive: false,
                                     };
-                                }
+                                },
                             );
                             turnoutLinks.forEach((value) => {
                                 this._addTurnoutLinkGraph(value);
@@ -506,7 +555,7 @@ export class TurnoutMap {
      */
     updateTurnoutCoordinate(
         turnoutId: number,
-        coord: Coordinate
+        coord: Coordinate,
     ): Promise<void> {
         return new Promise<void>((resolve) => {
             const sql =
@@ -546,52 +595,100 @@ export class TurnoutMap {
      * @returns The turnout if found
      */
     getTurnout(id: number): Promise<Turnout> {
-        return new Promise<Turnout>((resolve) => {
-            type Results = {
-                idturnouts: number;
-                name: string | null;
-                description: string | null;
-                primary_direction: number | null;
-                secondary_direction: number | null;
-                state: boolean;
-                coordinate: string;
-            }[];
-            const sql = 'SELECT * FROM turnouts WHERE idturnouts = ?';
-            const inserts = [id];
-            this._dbConnection.all(sql, inserts).then((results: Results) => {
-                const turnouts: Turnout[] = results.map((value) => {
-                    return {
-                        id: value.idturnouts,
-                        name: value.name || '',
-                        primaryDirection: value.primary_direction || 0,
-                        secondaryDirection: value.secondary_direction || 0,
-                        state: value.state
-                            ? TurnoutState.thrown
-                            : TurnoutState.closed,
-                        coordinate: JSON.parse(value.coordinate),
-                        connections: [],
-                    };
-                });
-                resolve(turnouts[0]);
-            });
-        }).then((turnout) => {
-            if (turnout) {
-                const sql =
-                    'SELECT idturnoutLinks FROM turnoutLinks WHERE start = ? OR end = ?';
-                const inserts = [turnout.id, turnout.id];
-                type Results = {
-                    idturnoutLinks: number;
-                }[];
-                this._dbConnection
-                    .all(sql, inserts)
-                    .then((results: Results) => {
-                        results.forEach((result) => {
-                            turnout.connections.push(result.idturnoutLinks);
-                        });
-                    });
-            }
-            return turnout;
+        const sql =
+            'SELECT n.nodeID id, n.name, n.description, n.coordinate, npd.linkID primaryDirection, nsd.linkID secondaryDirection, n.state  FROM ((Nodes n INNER JOIN Node_PrimaryDirection npd ON n.nodeID = npd.nodeID  ) INNER JOIN Node_SecondaryDirection nsd  ON n.nodeID = nsd.nodeID) WHERE n.nodeID = ?';
+        const inserts = [id];
+        type Results = {
+            id: number;
+            name: string;
+            description: string;
+            coordinate: string;
+            primaryDirection: number;
+            secondaryDirection: number;
+            state: boolean;
+        };
+        return this._dbConnection.get(sql, inserts).then((result: Results) => {
+            return {
+                id: result.id,
+                name: result.name,
+                coordinate: JSON.parse(result.coordinate),
+                state: result.state ? TurnoutState.thrown : TurnoutState.closed,
+                primaryDirection: result.primaryDirection,
+                secondaryDirection: result.secondaryDirection,
+            };
         });
+        // return this.getNode(id).then((node) => {
+        //     const sql =
+        //         'SELECT npd.linkID pLink, nsd.linkID sLink FROM Node_PrimaryDirection npd INNER JOIN Node_SecondaryDirection nsd  ON npd.nodeID = nsd.nodeID;';
+        //     const inserts = [node.id];
+        //     type Result = {
+        //         pLink: number;
+        //         sLink: number;
+        //     };
+        //     return this._dbConnection
+        //         .get(sql, inserts)
+        //         .then((result: Result) => {
+        //             if (node.type === 'destination') {
+        //                 return {
+        //                     id: node.id,
+        //                     name: node.name,
+        //                     coordinate: JSON.parse(node.coordinate),
+        //                     state: node.state
+        //                         ? TurnoutState.thrown
+        //                         : TurnoutState.closed,
+        //                     primaryDirection: result.pLink,
+        //                     secondaryDirection: result.sLink,
+        //                 };
+        //             }
+        //             throw 'Not destination';
+        //         });
+        // });
+        // return new Promise<Turnout>((resolve) => {
+        //     type Results = {
+        //         idturnouts: number;
+        //         name: string | null;
+        //         description: string | null;
+        //         primary_direction: number | null;
+        //         secondary_direction: number | null;
+        //         state: boolean;
+        //         coordinate: string;
+        //     }[];
+        //     const sql = 'SELECT * FROM turnouts WHERE idturnouts = ?';
+        //     const inserts = [id];
+        //     this._dbConnection.all(sql, inserts).then((results: Results) => {
+        //         const turnouts: Turnout[] = results.map((value) => {
+        //             return {
+        //                 id: value.idturnouts,
+        //                 name: value.name || '',
+        //                 primaryDirection: value.primary_direction || 0,
+        //                 secondaryDirection: value.secondary_direction || 0,
+        //                 state: value.state
+        //                     ? TurnoutState.thrown
+        //                     : TurnoutState.closed,
+        //                 coordinate: JSON.parse(value.coordinate),
+        //                 connections: [],
+        //             };
+        //         });
+        //         resolve(turnouts[0]);
+        //     });
+        // }).then((turnout) => {
+        //     if (turnout) {
+        //         const sql =
+        //             'SELECT idturnoutLinks FROM turnoutLinks WHERE start = ? OR end = ?';
+        //         const inserts = [turnout.id, turnout.id];
+        //         type Results = {
+        //             idturnoutLinks: number;
+        //         }[];
+        //         this._dbConnection
+        //             .all(sql, inserts)
+        //             .then((results: Results) => {
+        //                 results.forEach((result) => {
+        //                     turnout.connections.push(result.idturnoutLinks);
+        //                 });
+        //             });
+        //     }
+        //     return turnout;
+        // });
     }
 }
 
