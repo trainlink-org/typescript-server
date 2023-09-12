@@ -279,7 +279,8 @@ export async function findPathNew(
     dbConnection: Database,
     turnoutMap: TurnoutMap,
 ): Promise<number[]> {
-    const distances: Map<Node, number> = new Map();
+    // Key: node ID, Value: distance
+    const distances: Map<number, number> = new Map();
 
     // Check if route in cache
     const sql = 'SELECT * FROM RouteCache WHERE startNode = ? AND endNode = ?';
@@ -299,19 +300,21 @@ export async function findPathNew(
     const useMainline = await checkUseMainline(startNode, endNode);
     console.log(useMainline);
     (await turnoutMap.getNodes()).forEach((node) => {
-        distances.set(node, -1);
+        distances.set(node.id, -1);
     });
-    distances.set(startNode, 0);
+    distances.set(startNode.id, 0);
+    console.log(distances);
     /** A priority queue to store all the vertices that are yet to be explored, ordered from closest to furthest. */
     const queue: PriorityQueue<Node> = new PriorityQueue((a, b) => {
-        return (distances.get(a) || 0) > (distances.get(b) || 0);
+        return (distances.get(a.id) || 0) > (distances.get(b.id) || 0);
     });
 
     /** An array that stores all the visited vertices, stops the same vertices being repeatedly visited. */
     const visited: Node[] = [];
 
     /** Stores the previous vertexes for each destination, used by {@link pathToTurnouts} and to check turnout directions. */
-    const prevVertex: Map<Node, Node> = new Map();
+    // Key: Current node id, Value: Previous node id
+    const prevVertex: Map<number, number> = new Map();
 
     queue.add(startNode); // Adds the first vertex to the queue
     // let error = false;
@@ -324,65 +327,92 @@ export async function findPathNew(
             console.log('loop');
             // Get the first vertex in the queue
             const vertex = queue.pop();
-            // if (!vertex) break;
-            if (!vertex) throw 'error';
-            console.log('loop');
+            if (!vertex) break;
+            // if (!vertex) throw 'error';
+
             visited.push(vertex); // Mark it as visited...
             // error = true;
             // if (error) {
             //     break;
             // }
             console.log(vertex);
-            await getNeighbours(vertex, dbConnection).then((neighbours) => {
-                console.log(`Neighbours:`);
-                console.log(neighbours);
-                // Iterate over the neighbours
-                neighbours.forEach(async (neighbour) => {
-                    // Don't bother exploring it if it's already been visited
-                    if (visited.includes(neighbour)) return;
+            await getNeighbours(vertex, dbConnection)
+                .then((neighbours) => {
+                    console.log(`Neighbours:`);
+                    console.log(neighbours);
+                    // Iterate over the neighbours
 
-                    // Check if the neighbour is allowed
-                    if (!isValidNeighbour()) return;
+                    // neighbours.forEach(async (neighbour) => {
+                    const promises: Promise<void>[] = [];
+                    neighbours.forEach((neighbour) => {
+                        const promise = new Promise<void>((resolve) => {
+                            console.log(neighbour);
+                            // Don't bother exploring it if it's already been visited
+                            if (visited.includes(neighbour)) return;
 
-                    // Find the distance between the neighbour and start of the route
-                    const newDistance =
-                        (distances.get(vertex) || 0) +
-                        (await getNeighbourDistance(
-                            vertex,
-                            neighbour,
-                            dbConnection,
-                        ));
+                            // Check if the neighbour is allowed
+                            if (!isValidNeighbour()) return;
 
-                    // If the new distance is shorter than the current one for the neighbour, or it doesn't have a distance yet, set this as the distance.
-                    if (
-                        newDistance < (distances.get(neighbour) || -1) ||
-                        (distances.get(neighbour) || -1) === -1
-                    ) {
-                        distances.set(neighbour, newDistance);
-                        prevVertex.set(neighbour, vertex);
-                        queue.remove(neighbour);
-                        queue.add(neighbour);
+                            // Find the distance between the neighbour and start of the route
+
+                            getNeighbourDistance(
+                                vertex,
+                                neighbour,
+                                dbConnection,
+                            ).then((newDistance) => {
+                                newDistance =
+                                    (distances.get(vertex.id) || 0) +
+                                    newDistance;
+                                console.log(`newDistance: ${newDistance}`);
+
+                                // If the new distance is shorter than the current one for the neighbour, or it doesn't have a distance yet, set this as the distance.
+                                if (
+                                    newDistance <
+                                        (distances.get(neighbour.id) || -1) ||
+                                    (distances.get(neighbour.id) || -1) === -1
+                                ) {
+                                    console.log('Shorter');
+                                    distances.set(neighbour.id, newDistance);
+                                    prevVertex.set(neighbour.id, vertex.id);
+                                    queue.remove(neighbour);
+                                    queue.add(neighbour);
+                                    resolve();
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        });
+                        promises.push(promise);
+                    });
+                    return Promise.all(promises);
+                })
+                .then(() => {
+                    console.log(queue.size);
+
+                    // If we have reached the end of the queue (no more vertices to explore)
+                    if (queue.size === 0) {
+                        console.log('Queue empty');
+                        console.log(distances);
+                        console.log(`Distance: ${distances.get(endNode.id)}`);
+                        if (distances.get(endNode.id) === -1) {
+                            // No path between the start and end was found
+                            console.log('rejecting');
+                            reject('Bad route');
+                        } else {
+                            // Makes the path from the points explored
+                            const path = constructPathNew(
+                                startNode,
+                                endNode,
+                                prevVertex,
+                            );
+                            log(`Path: ${path}`);
+                            console.log('Resolving');
+                            resolve(path);
+                        }
                     }
                 });
-            });
-
-            // If we have reached the end of the queue (no more vertices to explore)
-            if (queue.size === 0) {
-                if (distances.get(endNode) === -1) {
-                    // No path between the start and end was found
-                    reject('Bad route');
-                } else {
-                    // Makes the path from the points explored
-                    const path = constructPathNew(
-                        startNode,
-                        endNode,
-                        prevVertex,
-                    );
-                    log(`Path: ${path}`);
-                    resolve(path);
-                }
-            }
         }
+        console.log('Left loop');
     });
 }
 
@@ -437,7 +467,6 @@ export function getNeighbours(
     return dbConnection
         .all(sql, inserts)
         .then((results: Results) => {
-            console.log(results);
             return results.map((result) => {
                 return {
                     id: result.nodeID,
@@ -512,7 +541,7 @@ function findPathFromCache(
 function constructPathNew(
     start: Node,
     end: Node,
-    prevPoints: Map<Node, Node>,
+    prevPoints: Map<number, number>,
 ): number[] {
     // A array to store the path through the graph
     const pointPath: Array<number> = [];
@@ -521,17 +550,19 @@ function constructPathNew(
     pointPath.push(end.id);
 
     //Define a mutable endpoint
-    let traversalEnd: Node = end;
+    let traversalEnd: number = end.id;
     // Work backwards through the array, recording the path
-    while (start !== traversalEnd) {
-        traversalEnd = prevPoints.get(traversalEnd) || {
-            id: NaN,
-            coordinate: { x: 0, y: 0 },
-            name: '',
-            type: '',
-            state: false,
-        };
-        pointPath.unshift(traversalEnd.id); // Add the turnout id to the front of the array
+    while (start.id !== traversalEnd) {
+        console.log('loop2');
+        // traversalEnd = prevPoints.get(traversalEnd) || {
+        //     id: NaN,
+        //     coordinate: { x: 0, y: 0 },
+        //     name: '',
+        //     type: '',
+        //     state: false,
+        // };
+        traversalEnd = prevPoints.get(traversalEnd) || -1;
+        pointPath.unshift(traversalEnd); // Add the turnout id to the front of the array
     }
     return pointPath;
 }

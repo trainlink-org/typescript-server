@@ -401,7 +401,27 @@ export class TurnoutMap {
     }
 
     getNodes(): Promise<Node[]> {
-        return this._dbConnection.all('SELECT * FROM Nodes');
+        type Results = {
+            nodeID: number;
+            name: string;
+            description: string;
+            nodeType: string;
+            coordinate: string;
+            state: boolean;
+        }[];
+        return this._dbConnection
+            .all('SELECT * FROM Nodes')
+            .then((results: Results) => {
+                return results.map((result) => {
+                    return {
+                        id: result.nodeID,
+                        name: result.name,
+                        type: result.nodeType,
+                        coordinate: JSON.parse(result.coordinate),
+                        state: result.state,
+                    };
+                });
+            });
     }
 
     /**
@@ -425,6 +445,23 @@ export class TurnoutMap {
                 this._dbConnection,
                 this,
             )}`,
+        );
+        console.log(
+            findPath(
+                {
+                    id: 1,
+                    name: '',
+                    description: '',
+                    coordinate: { x: 0, y: 0 },
+                },
+                {
+                    id: 2,
+                    name: '',
+                    description: '',
+                    coordinate: { x: 0, y: 0 },
+                },
+                this._turnoutGraph,
+            ),
         );
         new Promise<void>((resolve) => {
             this.getTurnouts().then((turnouts) => {
