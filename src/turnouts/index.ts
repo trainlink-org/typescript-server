@@ -1,5 +1,10 @@
 import { TurnoutGraph } from './graph';
-import { findPath, pathToTurnouts } from './routeFinder';
+import {
+    findPath,
+    findPathNew,
+    getNeighbours,
+    pathToTurnouts,
+} from './routeFinder';
 
 import {
     type Destination,
@@ -376,8 +381,22 @@ export class TurnoutMap {
     getNode(id: number): Promise<Node> {
         const sql = 'SELECT * FROM Nodes WHERE nodeID = ?;';
         const inserts = [id];
-        return this._dbConnection.get(sql, inserts).catch((reason) => {
-            throw reason;
+        type Result = {
+            nodeID: number;
+            name: string;
+            description: string;
+            nodeType: string;
+            coordinate: string;
+            state: boolean;
+        };
+        return this._dbConnection.get(sql, inserts).then((result: Result) => {
+            return {
+                id: result.nodeID,
+                name: result.name,
+                type: result.nodeType,
+                coordinate: JSON.parse(result.coordinate),
+                state: result.state,
+            };
         });
     }
 
@@ -388,7 +407,25 @@ export class TurnoutMap {
     /**
      * Loads the turnout map from the database
      */
-    loadTurnoutMap() {
+    async loadTurnoutMap() {
+        // const start = await this.getNode(2);
+        // const end = await this.getNode(7);
+        // findPathNew(start, end, this._dbConnection, this);
+        // this._dbConnection.get('SELECT * FROM Test');
+        // await findPathNew(
+        //     await this.getNode(1),
+        //     await this.getNode(2),
+        //     this._dbConnection,
+        //     this,
+        // );
+        console.log(
+            `Resolved to: ${await findPathNew(
+                await this.getNode(1),
+                await this.getNode(2),
+                this._dbConnection,
+                this,
+            )}`,
+        );
         new Promise<void>((resolve) => {
             this.getTurnouts().then((turnouts) => {
                 turnouts.forEach((turnout) => {
@@ -457,6 +494,16 @@ export class TurnoutMap {
                         }
                     }
                 });
+            })
+            .then(async () => {
+                console.log(
+                    `Resolved to: ${await findPathNew(
+                        await this.getNode(1),
+                        await this.getNode(2),
+                        this._dbConnection,
+                        this,
+                    )}`,
+                );
             });
     }
 

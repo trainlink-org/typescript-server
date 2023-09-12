@@ -17,13 +17,13 @@ export async function startServer(serverConfig: ServerConfig) {
         io.emit(
             'hardware/driverChanged',
             adapter.driverName,
-            adapter.driverMsg
+            adapter.driverMsg,
         );
     });
 
     // Opens the database
     const dbConnection = await setupDB(
-        serverConfig.configPath + '/' + (serverConfig.dbName || 'database.db')
+        serverConfig.configPath + '/' + (serverConfig.dbName || 'database.db'),
     );
 
     // Create the LocoStore
@@ -39,7 +39,7 @@ export async function startServer(serverConfig: ServerConfig) {
         dbConnection,
         (runningAutomations) => {
             io.emit('automation/fetchRunningResponse', runningAutomations);
-        }
+        },
     );
     turnoutMap.attachRuntime(runtime);
     runtime.registerPersistentUpdateCallback(() => {

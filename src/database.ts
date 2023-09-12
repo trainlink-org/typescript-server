@@ -19,7 +19,8 @@ export function setupDB(dbPath: string): Promise<Database> {
         open({
             filename: dbPath,
             driver: sqlite3.Database,
-        }).then((dbConnection) => {
+        }).then(async (dbConnection) => {
+            await dbConnection.run('PRAGMA foreign_keys = ON;');
             checkTables(dbConnection)
                 .then(() => {
                     return checkVersion(dbConnection);
@@ -121,9 +122,9 @@ function checkTables(dbConnection: Database): Promise<void> {
                             start INTEGER,
                             end INTEGER,
                             points TEXT,
-                            CONSTRAINT turnoutLinks_start_dest_FK FOREIGN KEY (start_dest) REFERENCES destinations(iddestinations) ON DELETE RESTRICT ON UPDATE RESTRICT
-                            CONSTRAINT turnoutLinks_start_FK FOREIGN KEY (start) REFERENCES turnouts(idturnouts) ON DELETE RESTRICT ON UPDATE RESTRICT
-                            CONSTRAINT turnoutLinks_end_FK FOREIGN KEY (end) REFERENCES turnouts(idturnouts) ON DELETE RESTRICT ON UPDATE RESTRICT
+                            CONSTRAINT turnoutLinks_start_dest_FK FOREIGN KEY (start_dest) REFERENCES destinations(iddestinations) ON DELETE RESTRICT ON UPDATE CASCADE
+                            CONSTRAINT turnoutLinks_start_FK FOREIGN KEY (start) REFERENCES turnouts(idturnouts) ON DELETE RESTRICT ON UPDATE CASCADE
+                            CONSTRAINT turnoutLinks_end_FK FOREIGN KEY (end) REFERENCES turnouts(idturnouts) ON DELETE RESTRICT ON UPDATE CASCADE
 
                         );
                     `,
@@ -210,10 +211,10 @@ function checkTables(dbConnection: Database): Promise<void> {
                             linkID INTEGER PRIMARY KEY AUTOINCREMENT,
                             startNodeID INTEGER,
                             endNodeID INTEGER,
-                            linkLength INTEGER,
+                            linkLength NUMBER,
                             points TEXT,
-                            CONSTRAINT Links_startNodeID_FK FOREIGN KEY (startNodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                            CONSTRAINT Links_endNodeID_FK FOREIGN KEY (endNodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE RESTRICT
+                            CONSTRAINT Links_startNodeID_FK FOREIGN KEY (startNodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Links_endNodeID_FK FOREIGN KEY (endNodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE
                         )
                     `,
                         )
@@ -233,8 +234,8 @@ function checkTables(dbConnection: Database): Promise<void> {
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
                             nodeID INTEGER,
                             linkID INTEGER,
-                            CONSTRAINT Node_PrimaryDirection_nodeID_FK FOREIGN KEY (nodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                            CONSTRAINT Node_PrimaryDirection_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE RESTRICT
+                            CONSTRAINT Node_PrimaryDirection_nodeID_FK FOREIGN KEY (nodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Node_PrimaryDirection_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE CASCADE
                         )
                     `,
                         )
@@ -254,8 +255,8 @@ function checkTables(dbConnection: Database): Promise<void> {
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
                             nodeID INTEGER,
                             linkID INTEGER,
-                            CONSTRAINT Node_SecondaryDirection_nodeID_FK FOREIGN KEY (nodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                            CONSTRAINT Node_SecondaryDirection_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE RESTRICT
+                            CONSTRAINT Node_SecondaryDirection_nodeID_FK FOREIGN KEY (nodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Node_SecondaryDirection_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE CASCADE
                         )
                     `,
                         )
@@ -293,8 +294,54 @@ function checkTables(dbConnection: Database): Promise<void> {
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
                             linkID INTEGER,
                             lineID INTEGER,
-                            CONSTRAINT Links_in_Line_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                            CONSTRAINT Links_in_Line_lineID_FK FOREIGN KEY (lineID) REFERENCES Lines(lineID) ON DELETE RESTRICT ON UPDATE RESTRICT
+                            CONSTRAINT Links_in_Line_linkID_FK FOREIGN KEY (linkID) REFERENCES Links(linkID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Links_in_Line_lineID_FK FOREIGN KEY (lineID) REFERENCES Lines(lineID) ON DELETE RESTRICT ON UPDATE CASCADE
+                        )
+                    `,
+                        )
+                        .then(() => {
+                            return;
+                        });
+                } else {
+                    return;
+                }
+            })
+            .then(() => {
+                if (!tableNames.includes('RouteCache')) {
+                    dbConnection
+                        .exec(
+                            `
+                        CREATE TABLE RouteCache (
+                            routeCacheID INTEGER PRIMARY KEY AUTOINCREMENT,
+                            startNode INTEGER,
+                            endNode INTEGER,
+                            distance NUMBER,
+                            CONSTRAINT RouteCache_startNode_FK FOREIGN KEY (startNode) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE
+                            CONSTRAINT RouteCache_endNode_FK FOREIGN KEY (endNode) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE
+                        )
+                    `,
+                        )
+                        .then(() => {
+                            return;
+                        });
+                } else {
+                    return;
+                }
+            })
+            .then(() => {
+                if (!tableNames.includes('Nodes_in_Cache')) {
+                    dbConnection
+                        .exec(
+                            `
+                        CREATE TABLE Nodes_in_Cache (
+                            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                            routeCacheID INTEGER,
+                            nodeID INTEGER,
+                            previousNodeID INTEGER,
+                            CONSTRAINT Nodes_in_Cache_routeCacheID FOREIGN KEY (routeCacheID) REFERENCES RouteCache(routeCacheID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Nodes_in_Cache_nodeID FOREIGN KEY (nodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE,
+                            CONSTRAINT Nodes_in_Cache_previousNodeID FOREIGN KEY (previousNodeID) REFERENCES Nodes(nodeID) ON DELETE RESTRICT ON UPDATE CASCADE
+                            
                         )
                     `,
                         )

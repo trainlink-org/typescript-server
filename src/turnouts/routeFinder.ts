@@ -9,10 +9,12 @@ import {
     type MapPoint,
     type TurnoutLink,
     type CurrentTurnoutState,
+    type Node,
     TurnoutState,
     isTurnout,
 } from '@trainlink-org/trainlink-types';
 import { log } from '../logger';
+import type { Database } from 'sqlite';
 
 /**
  * Finds the shortest path between two destinations using Dijkstra's algorithm
@@ -24,7 +26,7 @@ import { log } from '../logger';
 export async function findPath(
     externalStart: Destination,
     externalEnd: Destination,
-    graph: TurnoutGraph
+    graph: TurnoutGraph,
 ): Promise<number[]> {
     const start = graph.getVertex(externalStart.id);
     const end = graph.getVertex(externalEnd.id);
@@ -137,7 +139,7 @@ export async function findPath(
 function constructPath(
     start: MapPoint,
     end: MapPoint,
-    prevPoints: Map<MapPoint, MapPoint>
+    prevPoints: Map<MapPoint, MapPoint>,
 ): number[] {
     // A array to store the path through the graph
     const pointPath: Array<number> = [];
@@ -168,7 +170,7 @@ function constructPath(
 export async function pathToTurnouts(
     path: number[],
     turnoutMap: TurnoutMap,
-    graph: TurnoutGraph
+    graph: TurnoutGraph,
 ): Promise<RouteObject> {
     // Creates an array to store the turnouts that need to be changed
     const turnoutStates: CurrentTurnoutState[] = [];
@@ -189,10 +191,10 @@ export async function pathToTurnouts(
                     // Will never be false due to prev if
                     // Find the primary and secondary link for the turnout
                     const primaryLink = await turnoutMap.getLink(
-                        turnout.primaryDirection
+                        turnout.primaryDirection,
                     );
                     const secondaryLink = await turnoutMap.getLink(
-                        turnout.secondaryDirection
+                        turnout.secondaryDirection,
                     );
                     // Make sure they aren't undefined
                     if (primaryLink && secondaryLink) {
@@ -269,4 +271,267 @@ export async function pathToTurnouts(
             });
         } else reject();
     });
+}
+
+export async function findPathNew(
+    startNode: Node,
+    endNode: Node,
+    dbConnection: Database,
+    turnoutMap: TurnoutMap,
+): Promise<number[]> {
+    const distances: Map<Node, number> = new Map();
+
+    // Check if route in cache
+    const sql = 'SELECT * FROM RouteCache WHERE startNode = ? AND endNode = ?';
+    const inserts = [startNode.id, endNode.id];
+    const response = await dbConnection.get(sql, inserts);
+    if (response) {
+        console.log('Cache hit');
+        return findPathFromCache(startNode, endNode, dbConnection, turnoutMap);
+    }
+
+    console.log('Cache miss');
+
+    /** Zero if not same line, otherwise line number */
+    const sameLine = await checkSameLine(startNode, endNode);
+    console.log(sameLine);
+
+    const useMainline = await checkUseMainline(startNode, endNode);
+    console.log(useMainline);
+    (await turnoutMap.getNodes()).forEach((node) => {
+        distances.set(node, -1);
+    });
+    distances.set(startNode, 0);
+    /** A priority queue to store all the vertices that are yet to be explored, ordered from closest to furthest. */
+    const queue: PriorityQueue<Node> = new PriorityQueue((a, b) => {
+        return (distances.get(a) || 0) > (distances.get(b) || 0);
+    });
+
+    /** An array that stores all the visited vertices, stops the same vertices being repeatedly visited. */
+    const visited: Node[] = [];
+
+    /** Stores the previous vertexes for each destination, used by {@link pathToTurnouts} and to check turnout directions. */
+    const prevVertex: Map<Node, Node> = new Map();
+
+    queue.add(startNode); // Adds the first vertex to the queue
+    // let error = false;
+
+    return new Promise(async (resolve, reject) => {
+        // reject([0]);
+        console.log('promise');
+        // Keep going until queue is empty
+        while (queue.size > 0) {
+            console.log('loop');
+            // Get the first vertex in the queue
+            const vertex = queue.pop();
+            // if (!vertex) break;
+            if (!vertex) throw 'error';
+            console.log('loop');
+            visited.push(vertex); // Mark it as visited...
+            // error = true;
+            // if (error) {
+            //     break;
+            // }
+            console.log(vertex);
+            await getNeighbours(vertex, dbConnection).then((neighbours) => {
+                console.log(`Neighbours:`);
+                console.log(neighbours);
+                // Iterate over the neighbours
+                neighbours.forEach(async (neighbour) => {
+                    // Don't bother exploring it if it's already been visited
+                    if (visited.includes(neighbour)) return;
+
+                    // Check if the neighbour is allowed
+                    if (!isValidNeighbour()) return;
+
+                    // Find the distance between the neighbour and start of the route
+                    const newDistance =
+                        (distances.get(vertex) || 0) +
+                        (await getNeighbourDistance(
+                            vertex,
+                            neighbour,
+                            dbConnection,
+                        ));
+
+                    // If the new distance is shorter than the current one for the neighbour, or it doesn't have a distance yet, set this as the distance.
+                    if (
+                        newDistance < (distances.get(neighbour) || -1) ||
+                        (distances.get(neighbour) || -1) === -1
+                    ) {
+                        distances.set(neighbour, newDistance);
+                        prevVertex.set(neighbour, vertex);
+                        queue.remove(neighbour);
+                        queue.add(neighbour);
+                    }
+                });
+            });
+
+            // If we have reached the end of the queue (no more vertices to explore)
+            if (queue.size === 0) {
+                if (distances.get(endNode) === -1) {
+                    // No path between the start and end was found
+                    reject('Bad route');
+                } else {
+                    // Makes the path from the points explored
+                    const path = constructPathNew(
+                        startNode,
+                        endNode,
+                        prevVertex,
+                    );
+                    log(`Path: ${path}`);
+                    resolve(path);
+                }
+            }
+        }
+    });
+}
+
+function checkSameLine(firstNode: Node, secondNode: Node): Promise<number> {
+    console.log('checkSameLine');
+    return new Promise((resolve) => {
+        resolve(0);
+    });
+}
+
+function checkUseMainline(start: Node, end: Node): Promise<boolean> {
+    console.log('checkUseMainline');
+    return new Promise((resolve) => {
+        resolve(false);
+    });
+}
+
+export function getNeighbours(
+    node: Node,
+    dbConnection: Database,
+): Promise<Node[]> {
+    console.log('getNeigbours called');
+    const sql = `
+        SELECT
+            n.*
+        FROM
+            Nodes n,
+            Links l
+        WHERE
+            (n.nodeID = l.startNodeID
+                OR n.nodeID = l.endNodeID )
+            AND (? = l.startNodeID
+                OR ? = l.endNodeID)
+            AND n.nodeID <> ?;
+
+    `;
+    const inserts = [node.id, node.id, node.id];
+    type Results = {
+        nodeID: number;
+        name: string;
+        description: string;
+        nodeType: string;
+        coordinate: string;
+        state: boolean;
+    }[];
+    // console.log(await dbConnection.all(sql, inserts));
+    console.log('getNeighbours');
+    // dbConnection.get('SELECT * FROM Test').catch((error) => {
+    //     throw error;
+    // });
+    // const results = await dbConnection
+    return dbConnection
+        .all(sql, inserts)
+        .then((results: Results) => {
+            console.log(results);
+            return results.map((result) => {
+                return {
+                    id: result.nodeID,
+                    name: result.name,
+                    type: result.nodeType,
+                    state: result.state,
+                    coordinate: JSON.parse(result.coordinate),
+                };
+            });
+        })
+        .catch(() => {
+            return [
+                {
+                    id: 0,
+                    name: '',
+                    type: '',
+                    state: false,
+                    coordinate: { x: 0, y: 0 },
+                },
+            ];
+        });
+    // return results;
+}
+
+function isValidNeighbour(): boolean {
+    return true;
+}
+
+function getNeighbourDistance(
+    vertex: Node,
+    neighbour: Node,
+    dbConnection: Database,
+): Promise<number> {
+    const sql = `
+        SELECT
+            l.linkLength
+        FROM
+            Links l
+        WHERE
+            (startNodeID = ?
+                AND endNodeID = ?)
+            OR (startNodeID = ?
+                AND endNodeID = ?)
+    `;
+    const inserts = [vertex.id, neighbour.id, neighbour.id, vertex.id];
+    type Result = {
+        linkLength: number;
+    };
+    return dbConnection.get(sql, inserts).then((result: Result) => {
+        return result.linkLength;
+    });
+}
+
+function findPathFromCache(
+    startNode: Node,
+    endNode: Node,
+    dbConnection: Database,
+    turnoutMap: TurnoutMap,
+): Promise<number[]> {
+    return new Promise((resolve) => {
+        resolve([]);
+    });
+}
+
+/**
+ * Creates the path between two Destinations from the output of Dijkstra's algorithm
+ * @param start The start destination for the path
+ * @param end The end destination for the path
+ * @param prevPoints A map of the previous vertices for each vertex
+ * @returns An array containing the IDs of the turnouts to set
+ */
+function constructPathNew(
+    start: Node,
+    end: Node,
+    prevPoints: Map<Node, Node>,
+): number[] {
+    // A array to store the path through the graph
+    const pointPath: Array<number> = [];
+
+    // Starting from the end
+    pointPath.push(end.id);
+
+    //Define a mutable endpoint
+    let traversalEnd: Node = end;
+    // Work backwards through the array, recording the path
+    while (start !== traversalEnd) {
+        traversalEnd = prevPoints.get(traversalEnd) || {
+            id: NaN,
+            coordinate: { x: 0, y: 0 },
+            name: '',
+            type: '',
+            state: false,
+        };
+        pointPath.unshift(traversalEnd.id); // Add the turnout id to the front of the array
+    }
+    return pointPath;
 }
