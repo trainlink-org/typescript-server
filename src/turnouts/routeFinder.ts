@@ -279,6 +279,7 @@ export async function findPathNew(
     dbConnection: Database,
     turnoutMap: TurnoutMap,
 ): Promise<number[]> {
+    console.log(`Pathfinding between ${startNode.id} and ${endNode.id}`);
     // Key: node ID, Value: distance
     const distances: Map<number, number> = new Map();
 
@@ -321,10 +322,8 @@ export async function findPathNew(
 
     return new Promise(async (resolve, reject) => {
         // reject([0]);
-        console.log('promise');
         // Keep going until queue is empty
         while (queue.size > 0) {
-            console.log('loop');
             // Get the first vertex in the queue
             const vertex = queue.pop();
             if (!vertex) break;
@@ -335,18 +334,14 @@ export async function findPathNew(
             // if (error) {
             //     break;
             // }
-            console.log(vertex);
             await getNeighbours(vertex, dbConnection)
                 .then((neighbours) => {
-                    console.log(`Neighbours:`);
-                    console.log(neighbours);
                     // Iterate over the neighbours
 
                     // neighbours.forEach(async (neighbour) => {
                     const promises: Promise<void>[] = [];
                     neighbours.forEach((neighbour) => {
                         const promise = new Promise<void>((resolve) => {
-                            console.log(neighbour);
                             // Don't bother exploring it if it's already been visited
                             if (visited.includes(neighbour)) return;
 
@@ -363,7 +358,6 @@ export async function findPathNew(
                                 newDistance =
                                     (distances.get(vertex.id) || 0) +
                                     newDistance;
-                                console.log(`newDistance: ${newDistance}`);
 
                                 // If the new distance is shorter than the current one for the neighbour, or it doesn't have a distance yet, set this as the distance.
                                 if (
@@ -371,7 +365,6 @@ export async function findPathNew(
                                         (distances.get(neighbour.id) || -1) ||
                                     (distances.get(neighbour.id) || -1) === -1
                                 ) {
-                                    console.log('Shorter');
                                     distances.set(neighbour.id, newDistance);
                                     prevVertex.set(neighbour.id, vertex.id);
                                     queue.remove(neighbour);
@@ -387,13 +380,8 @@ export async function findPathNew(
                     return Promise.all(promises);
                 })
                 .then(() => {
-                    console.log(queue.size);
-
                     // If we have reached the end of the queue (no more vertices to explore)
                     if (queue.size === 0) {
-                        console.log('Queue empty');
-                        console.log(distances);
-                        console.log(`Distance: ${distances.get(endNode.id)}`);
                         if (distances.get(endNode.id) === -1) {
                             // No path between the start and end was found
                             console.log('rejecting');
@@ -434,7 +422,6 @@ export function getNeighbours(
     node: Node,
     dbConnection: Database,
 ): Promise<Node[]> {
-    console.log('getNeigbours called');
     const sql = `
         SELECT
             n.*
@@ -459,7 +446,7 @@ export function getNeighbours(
         state: boolean;
     }[];
     // console.log(await dbConnection.all(sql, inserts));
-    console.log('getNeighbours');
+    // console.log('getNeighbours');
     // dbConnection.get('SELECT * FROM Test').catch((error) => {
     //     throw error;
     // });
@@ -553,7 +540,7 @@ function constructPathNew(
     let traversalEnd: number = end.id;
     // Work backwards through the array, recording the path
     while (start.id !== traversalEnd) {
-        console.log('loop2');
+        // console.log('loop2');
         // traversalEnd = prevPoints.get(traversalEnd) || {
         //     id: NaN,
         //     coordinate: { x: 0, y: 0 },

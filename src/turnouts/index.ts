@@ -86,10 +86,13 @@ export class TurnoutMap {
      * @param endID ID of the destination to end at
      */
     async setRoute(startID: number, endID: number) {
-        const start = await this.getDestination(startID);
-        const end = await this.getDestination(endID);
+        // const start = await this.getDestination(startID);
+        // const end = await this.getDestination(endID);
+        const start = await this.getNode(startID);
+        const end = await this.getNode(endID);
         if (start && end) {
-            await findPath(start, end, this._turnoutGraph)
+            // await findPath(start, end, this._turnoutGraph);
+            await findPathNew(start, end, this._dbConnection, this)
                 .then(
                     (path): Promise<RouteObject> =>
                         pathToTurnouts(path, this, this._turnoutGraph),
@@ -324,7 +327,7 @@ export class TurnoutMap {
             points: string;
         }[];
         return this._dbConnection
-            .all('SELECT * FROM turnoutLinks;')
+            .all('SELECT * FROM Links;')
             .then((results: Results) => {
                 // const turnoutLinks: TurnoutLink[] = results.map((value) => {
                 return results.map((result) => {
@@ -438,31 +441,32 @@ export class TurnoutMap {
         //     this._dbConnection,
         //     this,
         // );
-        console.log(
-            `Resolved to: ${await findPathNew(
-                await this.getNode(1),
-                await this.getNode(2),
-                this._dbConnection,
-                this,
-            )}`,
-        );
-        console.log(
-            findPath(
-                {
-                    id: 1,
-                    name: '',
-                    description: '',
-                    coordinate: { x: 0, y: 0 },
-                },
-                {
-                    id: 2,
-                    name: '',
-                    description: '',
-                    coordinate: { x: 0, y: 0 },
-                },
-                this._turnoutGraph,
-            ),
-        );
+        // console.log(
+        //     `Resolved to: ${await findPathNew(
+        //         await this.getNode(1),
+        //         await this.getNode(2),
+        //         this._dbConnection,
+        //         this,
+        //     )}`,
+        // );
+        // console.log(await this.getLinks());
+        // console.log(
+        //     findPath(
+        //         {
+        //             id: 1,
+        //             name: '',
+        //             description: '',
+        //             coordinate: { x: 0, y: 0 },
+        //         },
+        //         {
+        //             id: 2,
+        //             name: '',
+        //             description: '',
+        //             coordinate: { x: 0, y: 0 },
+        //         },
+        //         this._turnoutGraph,
+        //     ),
+        // );
         new Promise<void>((resolve) => {
             this.getTurnouts().then((turnouts) => {
                 turnouts.forEach((turnout) => {
@@ -533,14 +537,31 @@ export class TurnoutMap {
                 });
             })
             .then(async () => {
-                console.log(
-                    `Resolved to: ${await findPathNew(
-                        await this.getNode(1),
-                        await this.getNode(2),
-                        this._dbConnection,
-                        this,
-                    )}`,
-                );
+                // console.log(
+                //     `Resolved to: ${await findPathNew(
+                //         await this.getNode(1),
+                //         await this.getNode(2),
+                //         this._dbConnection,
+                //         this,
+                //     )}`,
+                // );
+                // console.log(
+                //     await findPath(
+                //         {
+                //             id: 1,
+                //             name: '',
+                //             description: '',
+                //             coordinate: { x: 0, y: 0 },
+                //         },
+                //         {
+                //             id: 2,
+                //             name: '',
+                //             description: '',
+                //             coordinate: { x: 0, y: 0 },
+                //         },
+                //         this._turnoutGraph,
+                //     ),
+                // );
             });
     }
 
