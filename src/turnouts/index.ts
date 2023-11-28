@@ -1,9 +1,10 @@
-import { TurnoutGraph } from './graph';
+// import { TurnoutGraph } from './graph';
 import {
-    findPath,
+    // findPath,
     findPathNew,
-    getNeighbours,
-    pathToTurnouts,
+    // getNeighbours,
+    // pathToTurnouts,
+    pathToTurnoutsNew,
 } from './routeFinder';
 
 import {
@@ -15,6 +16,7 @@ import {
     type Node,
     TurnoutState,
     type HardwareAdapter,
+    type RouteObjectNew,
 } from '@trainlink-org/trainlink-types';
 import { io } from '../socket';
 
@@ -29,11 +31,13 @@ type turnoutId = number;
  * Stores the map of turnouts and destinations
  */
 export class TurnoutMap {
-    private _turnoutGraph: TurnoutGraph = new TurnoutGraph();
+    // private _turnoutGraph: TurnoutGraph = new TurnoutGraph();
     private _usedLinks: Map<number, number> = new Map();
     private _usedDestinations: Map<number, number> = new Map();
     private _usedTurnouts: Map<number, number> = new Map();
+    private _usedNodes: Map<number, number> = new Map();
     private _activeRoutes: Map<number, RouteObject> = new Map();
+    private _activeRoutesNew: Map<number, RouteObjectNew> = new Map();
     private _routeIdAllocator: routeIdAllocator = new routeIdAllocator();
     private _dbConnection: Database;
     private _adapter: HardwareAdapter;
@@ -80,6 +84,25 @@ export class TurnoutMap {
         }
     }
 
+    async setTurnoutNew(id: number, state: TurnoutState) {
+        const node = await this.getNode(id);
+        if (node.type === 'turnout') {
+            if (this._usedNodes.has(id)) {
+                const routeID = this._usedNodes.get(id) || 0;
+                const route = this._activeRoutes.get(routeID);
+                if (route) this._clearRoute(route);
+            }
+        }
+        this._adapter.turnoutSet(id, state);
+        this._runtime?.triggerEvent(
+            `turnout/${state ? 'throw' : 'close'}/${id}`,
+        );
+        io.emit('routes/turnoutUpdate', id, state);
+        const sql = 'UPDATE Nodes SET state = ? WHERE nodeID = ?';
+        const inserts = [state === TurnoutState.thrown ? true : false, id];
+        await this._dbConnection.run(sql, inserts);
+    }
+
     /**
      * Set a route between two destinations
      * @param startID ID of the destination to start at
@@ -95,7 +118,8 @@ export class TurnoutMap {
             await findPathNew(start, end, this._dbConnection, this)
                 .then(
                     (path): Promise<RouteObject> =>
-                        pathToTurnouts(path, this, this._turnoutGraph),
+                        // pathToTurnouts(path, this, this._turnoutGraph),
+                        pathToTurnoutsNew(path, this),
                 )
                 .then((path) => {
                     this._clearRoute(path);
@@ -154,6 +178,17 @@ export class TurnoutMap {
                 })
                 .catch((reason) => log(`Unable to create route: ${reason}`));
         }
+    }
+
+    async setRouteNew(startID: number, endID: number) {
+        const start = await this.getNode(startID);
+        const end = await this.getNode(endID);
+        const path = await findPathNew(start, end, this._dbConnection, this);
+        const nodes = await Promise.all(
+            path.map((nodeID) => {
+                return this.getNode(nodeID);
+            }),
+        );
     }
 
     /**
@@ -398,7 +433,7 @@ export class TurnoutMap {
                 name: result.name,
                 type: result.nodeType,
                 coordinate: JSON.parse(result.coordinate),
-                state: result.state,
+                state: result.state ? TurnoutState.thrown : TurnoutState.closed,
             };
         });
     }
@@ -421,7 +456,9 @@ export class TurnoutMap {
                         name: result.name,
                         type: result.nodeType,
                         coordinate: JSON.parse(result.coordinate),
-                        state: result.state,
+                        state: result.state
+                            ? TurnoutState.thrown
+                            : TurnoutState.closed,
                     };
                 });
             });
@@ -467,102 +504,102 @@ export class TurnoutMap {
         //         this._turnoutGraph,
         //     ),
         // );
-        new Promise<void>((resolve) => {
-            this.getTurnouts().then((turnouts) => {
-                turnouts.forEach((turnout) => {
-                    this._addTurnoutGraph(turnout);
-                });
-                resolve();
-            });
-        })
-            .then(() => {
-                // Get the destinations from the db
-                return new Promise<void>((resolve) => {
-                    this.getDestinations().then((destinations) => {
-                        destinations.forEach((destination) => {
-                            this._addDestinationGraph(destination);
-                        });
-                        resolve();
-                    });
-                });
-            })
-            .then(() => {
-                // Get the links between turnouts from the db
-                return new Promise<void>((resolve) => {
-                    type results = {
-                        idturnoutLinks: number;
-                        length: number;
-                        start_dest: number | null;
-                        start: number | null;
-                        end: number | null;
-                        points: string;
-                    }[];
-                    this._dbConnection
-                        .all('SELECT * FROM turnoutLinks')
-                        .then((results: results) => {
-                            const turnoutLinks: TurnoutLink[] = results.map(
-                                (value) => {
-                                    return {
-                                        id: value.idturnoutLinks,
-                                        length: value.length,
-                                        start:
-                                            value.start_dest ||
-                                            value.start ||
-                                            0,
-                                        end: value.end || 0,
-                                        points: JSON.parse(value.points),
-                                        startActive: false,
-                                        endActive: false,
-                                    };
-                                },
-                            );
-                            turnoutLinks.forEach((value) => {
-                                this._addTurnoutLinkGraph(value);
-                            });
-                            resolve();
-                        });
-                });
-            })
-            .then(async () => {
-                // Set initial active sections for the links
-                (await this.getTurnouts()).forEach(async (turnout) => {
-                    const link = await this.getLink(turnout.primaryDirection);
-                    if (link) {
-                        if (link.start === turnout.id) {
-                            link.startActive = true;
-                        } else {
-                            link.endActive = true;
-                        }
-                    }
-                });
-            })
-            .then(async () => {
-                // console.log(
-                //     `Resolved to: ${await findPathNew(
-                //         await this.getNode(1),
-                //         await this.getNode(2),
-                //         this._dbConnection,
-                //         this,
-                //     )}`,
-                // );
-                // console.log(
-                //     await findPath(
-                //         {
-                //             id: 1,
-                //             name: '',
-                //             description: '',
-                //             coordinate: { x: 0, y: 0 },
-                //         },
-                //         {
-                //             id: 2,
-                //             name: '',
-                //             description: '',
-                //             coordinate: { x: 0, y: 0 },
-                //         },
-                //         this._turnoutGraph,
-                //     ),
-                // );
-            });
+        // new Promise<void>((resolve) => {
+        //     this.getTurnouts().then((turnouts) => {
+        //         turnouts.forEach((turnout) => {
+        //             this._addTurnoutGraph(turnout);
+        //         });
+        //         resolve();
+        //     });
+        // })
+        //     .then(() => {
+        //         // Get the destinations from the db
+        //         return new Promise<void>((resolve) => {
+        //             this.getDestinations().then((destinations) => {
+        //                 destinations.forEach((destination) => {
+        //                     this._addDestinationGraph(destination);
+        //                 });
+        //                 resolve();
+        //             });
+        //         });
+        //     })
+        //     .then(() => {
+        //         // Get the links between turnouts from the db
+        //         return new Promise<void>((resolve) => {
+        //             type results = {
+        //                 idturnoutLinks: number;
+        //                 length: number;
+        //                 start_dest: number | null;
+        //                 start: number | null;
+        //                 end: number | null;
+        //                 points: string;
+        //             }[];
+        //             this._dbConnection
+        //                 .all('SELECT * FROM turnoutLinks')
+        //                 .then((results: results) => {
+        //                     const turnoutLinks: TurnoutLink[] = results.map(
+        //                         (value) => {
+        //                             return {
+        //                                 id: value.idturnoutLinks,
+        //                                 length: value.length,
+        //                                 start:
+        //                                     value.start_dest ||
+        //                                     value.start ||
+        //                                     0,
+        //                                 end: value.end || 0,
+        //                                 points: JSON.parse(value.points),
+        //                                 startActive: false,
+        //                                 endActive: false,
+        //                             };
+        //                         },
+        //                     );
+        //                     turnoutLinks.forEach((value) => {
+        //                         this._addTurnoutLinkGraph(value);
+        //                     });
+        //                     resolve();
+        //                 });
+        //         });
+        //     })
+        //     .then(async () => {
+        //         // Set initial active sections for the links
+        //         (await this.getTurnouts()).forEach(async (turnout) => {
+        //             const link = await this.getLink(turnout.primaryDirection);
+        //             if (link) {
+        //                 if (link.start === turnout.id) {
+        //                     link.startActive = true;
+        //                 } else {
+        //                     link.endActive = true;
+        //                 }
+        //             }
+        //         });
+        //     })
+        //     .then(async () => {
+        //         // console.log(
+        //         //     `Resolved to: ${await findPathNew(
+        //         //         await this.getNode(1),
+        //         //         await this.getNode(2),
+        //         //         this._dbConnection,
+        //         //         this,
+        //         //     )}`,
+        //         // );
+        //         // console.log(
+        //         //     await findPath(
+        //         //         {
+        //         //             id: 1,
+        //         //             name: '',
+        //         //             description: '',
+        //         //             coordinate: { x: 0, y: 0 },
+        //         //         },
+        //         //         {
+        //         //             id: 2,
+        //         //             name: '',
+        //         //             description: '',
+        //         //             coordinate: { x: 0, y: 0 },
+        //         //         },
+        //         //         this._turnoutGraph,
+        //         //     ),
+        //         // );
+        //     });
     }
 
     /**
@@ -583,29 +620,29 @@ export class TurnoutMap {
         });
     }
 
-    /**
-     * Adds a turnout to the graph
-     * @param turnout The turnout to add
-     */
-    private _addTurnoutGraph(turnout: Turnout) {
-        this._turnoutGraph.addVertex(turnout);
-    }
+    // /**
+    //  * Adds a turnout to the graph
+    //  * @param turnout The turnout to add
+    //  */
+    // private _addTurnoutGraph(turnout: Turnout) {
+    //     this._turnoutGraph.addVertex(turnout);
+    // }
 
-    /**
-     * Adds a link to the graph
-     * @param turnoutLink The link to add
-     */
-    private _addTurnoutLinkGraph(turnoutLink: TurnoutLink) {
-        this._turnoutGraph.addEdge(turnoutLink);
-    }
+    // /**
+    //  * Adds a link to the graph
+    //  * @param turnoutLink The link to add
+    //  */
+    // private _addTurnoutLinkGraph(turnoutLink: TurnoutLink) {
+    //     this._turnoutGraph.addEdge(turnoutLink);
+    // }
 
-    /**
-     * Adds a destination to the graph
-     * @param destination The destination to add
-     */
-    private _addDestinationGraph(destination: Destination) {
-        this._turnoutGraph.addVertex(destination);
-    }
+    // /**
+    //  * Adds a destination to the graph
+    //  * @param destination The destination to add
+    //  */
+    // private _addDestinationGraph(destination: Destination) {
+    //     this._turnoutGraph.addVertex(destination);
+    // }
 }
 
 type RouteID = number;

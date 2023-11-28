@@ -273,6 +273,30 @@ export async function pathToTurnouts(
     });
 }
 
+export async function pathToTurnoutsNew(
+    path: number[],
+    turnoutMap: TurnoutMap,
+): Promise<RouteObject> {
+    return new Promise((resolve) => {
+        resolve({
+            start: {
+                id: 0,
+                name: '',
+                description: '',
+                coordinate: { x: 0, y: 0 },
+            },
+            turnouts: [],
+            end: {
+                id: 0,
+                name: '',
+                description: '',
+                coordinate: { x: 0, y: 0 },
+            },
+            links: [],
+        });
+    });
+}
+
 export async function findPathNew(
     startNode: Node,
     endNode: Node,
@@ -459,7 +483,9 @@ export function getNeighbours(
                     id: result.nodeID,
                     name: result.name,
                     type: result.nodeType,
-                    state: result.state,
+                    state: result.state
+                        ? TurnoutState.thrown
+                        : TurnoutState.closed,
                     coordinate: JSON.parse(result.coordinate),
                 };
             });
@@ -470,7 +496,7 @@ export function getNeighbours(
                     id: 0,
                     name: '',
                     type: '',
-                    state: false,
+                    state: TurnoutState.closed,
                     coordinate: { x: 0, y: 0 },
                 },
             ];
