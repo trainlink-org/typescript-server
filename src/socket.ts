@@ -109,44 +109,32 @@ export function startSocketServer(
             userCount -= 1;
             log(`A user disconnected: ${reason}`);
         });
-        socket.on('throttle/setSpeed', (identifier, throttleID, speed) => {
-            throttleHandler.speedChange(
+        socket.on('throttle/setSpeed', (identifier, speed) => {
+            throttleHandler.speedChange(identifier, speed, io, socket, store);
+        });
+        // socket.on('throttle/switchDirection', (identifier) => {
+        //     throttleHandler.changeDirection(identifier, io, store);
+        // });
+        socket.on('throttle/setDirection', (identifier, direction) => {
+            throttleHandler.setDirection(
                 identifier,
-                speed,
-                throttleID,
+                direction,
                 io,
                 socket,
                 store,
             );
         });
-        // socket.on('throttle/switchDirection', (identifier) => {
-        //     throttleHandler.changeDirection(identifier, io, store);
-        // });
-        socket.on(
-            'throttle/setDirection',
-            (identifier, throttleID, direction) => {
-                throttleHandler.setDirection(
-                    identifier,
-                    direction,
-                    io,
-                    socket,
-                    store,
-                );
-            },
-        );
-        socket.on(
-            'throttle/setFunction',
-            (identifier, throttleID, functionNum, state) => {
-                throttleHandler.setFunction(
-                    identifier,
-                    functionNum,
-                    state,
-                    io,
-                    store,
-                );
-            },
-        );
-        socket.on('throttle/setTrackPower', (throttleID, state) => {
+        socket.on('throttle/setFunction', (identifier, functionNum, state) => {
+            throttleHandler.setFunction(
+                identifier,
+                functionNum,
+                state,
+                io,
+                socket,
+                store,
+            );
+        });
+        socket.on('throttle/setTrackPower', (state) => {
             throttleHandler.setTrackPower(state, io, socket, adapter);
         });
         socket.on('automation/fileUpload', async (name, file) => {

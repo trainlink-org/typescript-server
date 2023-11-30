@@ -23,16 +23,15 @@ import type { Server, Socket } from 'socket.io';
 export function speedChange(
     identifier: LocoIdentifier,
     speed: number,
-    throttleID: number,
-    io: Server<ClientToServerEvents, ServerToClientEvents>,
+    io: SocketIoServer,
     socket: Socket,
-    store: LocoStore
+    store: LocoStore,
 ) {
     store
         .getLoco(identifier, SyncLevel.SerialOnly)
         .then((loco) => (loco.speed = speed))
         .catch();
-    io.emit('throttle/speedUpdate', identifier, speed, socket.id, throttleID);
+    io.emit('throttle/speedUpdate', identifier, speed, socket.id);
 }
 
 /**
@@ -41,27 +40,33 @@ export function speedChange(
  * @param io The socket.io server object to update other clients
  * @param store The LocoStore instance
  */
-export function changeDirection(
-    identifier: LocoIdentifier,
-    io: Server,
-    store: LocoStore
-) {
-    store
-        .getLoco(identifier)
-        .then((loco) => {
-            switch (loco.direction) {
-                case Direction.forward:
-                    loco.direction = Direction.reverse;
-                    break;
+// export function changeDirection(
+//     identifier: LocoIdentifier,
+//     io: Server<ClientToServerEvents, ServerToClientEvents>,
+//     socket: Socket,
+//     store: LocoStore,
+// ) {
+//     store
+//         .getLoco(identifier)
+//         .then((loco) => {
+//             switch (loco.direction) {
+//                 case Direction.forward:
+//                     loco.direction = Direction.reverse;
+//                     break;
 
-                case Direction.reverse:
-                    loco.direction = Direction.forward;
-                    break;
-            }
-            io.emit('throttle/directionUpdate', identifier, loco.direction);
-        })
-        .catch();
-}
+//                 case Direction.reverse:
+//                     loco.direction = Direction.forward;
+//                     break;
+//             }
+//             io.emit(
+//                 'throttle/directionUpdate',
+//                 identifier,
+//                 loco.direction,
+//                 socket.id,
+//             );
+//         })
+//         .catch();
+// }
 
 /**
  * Used to update the direction of a loco in response to a socket packet and update other clients
@@ -74,9 +79,9 @@ export function changeDirection(
 export function setDirection(
     identifier: LocoIdentifier,
     direction: Direction,
-    io: Server<ClientToServerEvents, ServerToClientEvents>,
+    io: SocketIoServer,
     socket: Socket,
-    store: LocoStore
+    store: LocoStore,
 ) {
     store
         .getLoco(identifier)
@@ -84,10 +89,20 @@ export function setDirection(
             loco.direction = direction;
             if (direction === Direction.stopped) {
                 loco.speed = 0;
-                io.emit('throttle/speedUpdate', identifier, 0, socket.id, 0);
-                io.emit('throttle/directionUpdate', identifier, direction);
+                io.emit('throttle/speedUpdate', identifier, 0, socket.id);
+                io.emit(
+                    'throttle/directionUpdate',
+                    identifier,
+                    direction,
+                    socket.id,
+                );
             } else {
-                io.emit('throttle/directionUpdate', identifier, direction);
+                io.emit(
+                    'throttle/directionUpdate',
+                    identifier,
+                    direction,
+                    socket.id,
+                );
             }
         })
         .catch();
@@ -99,6 +114,7 @@ export function setDirection(
  * @param functionNum The function number
  * @param state The state to set it to
  * @param io The socket.io server object to update other clients
+ * @param socket The socket instance that sent the message
  * @param store The LocoStore instance
  */
 export function setFunction(
@@ -106,13 +122,20 @@ export function setFunction(
     functionNum: number,
     state: boolean,
     io: SocketIoServer,
-    store: LocoStore
+    socket: Socket,
+    store: LocoStore,
 ) {
     store
         .getLoco(identifier)
         .then((loco) => {
             loco.setFunction(functionNum, state);
-            io.emit('throttle/functionUpdate', identifier, functionNum, state);
+            io.emit(
+                'throttle/functionUpdate',
+                identifier,
+                functionNum,
+                state,
+                socket.id,
+            );
         })
         .catch();
 }
@@ -128,7 +151,7 @@ export function setTrackPower(
     state: boolean,
     io: SocketIoServer,
     socket: Socket,
-    adapter: HardwareAdapter
+    adapter: HardwareAdapter,
 ) {
     adapter.trackPowerSet(state);
     trackPower.state = state;
