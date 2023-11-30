@@ -119,7 +119,7 @@ export class TurnoutMap {
                 .then(
                     (path): Promise<RouteObject> =>
                         // pathToTurnouts(path, this, this._turnoutGraph),
-                        pathToTurnoutsNew(path, this),
+                        pathToTurnoutsNew(path, this, this._dbConnection),
                 )
                 .then((path) => {
                     this._clearRoute(path);
@@ -175,8 +175,8 @@ export class TurnoutMap {
                         links,
                     );
                     io.emit('routes/routeUpdate', path);
-                })
-                .catch((reason) => log(`Unable to create route: ${reason}`));
+                });
+            // .catch((reason) => log(`Unable to create route: ${reason}`));
         }
     }
 
@@ -287,6 +287,7 @@ export class TurnoutMap {
                 state: result.state ? TurnoutState.thrown : TurnoutState.closed,
                 primaryDirection: result.primaryDirection,
                 secondaryDirection: result.secondaryDirection,
+                usedInRoute: false,
             };
         });
     }
@@ -320,6 +321,7 @@ export class TurnoutMap {
                             : TurnoutState.closed,
                         primaryDirection: result.primaryDirection,
                         secondaryDirection: result.secondaryDirection,
+                        usedInRoute: false,
                     };
                 });
             });
@@ -344,6 +346,7 @@ export class TurnoutMap {
                 points: JSON.parse(result.points),
                 startActive: false,
                 endActive: false,
+                usedInRoute: false,
             };
         });
     }
@@ -374,6 +377,7 @@ export class TurnoutMap {
                         points: JSON.parse(result.points),
                         startActive: false,
                         endActive: false,
+                        usedInRoute: false,
                     };
                 });
             });
@@ -411,6 +415,7 @@ export class TurnoutMap {
                         name: result.name,
                         description: result.description,
                         coordinate: JSON.parse(result.coordinate),
+                        usedInRoute: false,
                     };
                 });
             });
@@ -428,6 +433,7 @@ export class TurnoutMap {
             state: boolean;
         };
         return this._dbConnection.get(sql, inserts).then((result: Result) => {
+            if (result === undefined) throw `No node with id ${id}`;
             return {
                 id: result.nodeID,
                 name: result.name,
