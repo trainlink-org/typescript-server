@@ -355,15 +355,20 @@ export async function pathToTurnoutsNew(
             // const edge = graph.getEdge(mapPoint, nextMapPoint);
             const sql =
                 'SELECT linkID FROM Links WHERE (startNodeID = ? AND endNodeID = ?) OR (endNodeID = ? AND startNodeID = ?);';
-            console.log(mapPoint);
+            type result = {
+                linkID: number;
+            };
             const inserts = [
                 mapPoint.id,
                 nextMapPoint.id,
                 mapPoint.id,
                 nextMapPoint.id,
             ];
-            const edge = await dbConnection.get(sql, inserts);
-            if (edge) links.push(edge.linkID);
+            const edge: result | undefined = await dbConnection.get(
+                sql,
+                inserts,
+            );
+            if (edge) links.push(await turnoutMap.getLink(edge.linkID));
         }
     }
     console.log(`Links: ${links}`);

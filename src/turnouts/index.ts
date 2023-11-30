@@ -109,6 +109,7 @@ export class TurnoutMap {
      * @param endID ID of the destination to end at
      */
     async setRoute(startID: number, endID: number) {
+        console.log('setRoute');
         // const start = await this.getDestination(startID);
         // const end = await this.getDestination(endID);
         const start = await this.getNode(startID);
@@ -168,6 +169,7 @@ export class TurnoutMap {
                     destinations.push(path.start.id);
                     this._usedDestinations.set(path.end.id, routeID);
                     destinations.push(path.end.id);
+                    console.log(links);
                     io.emit(
                         'routes/setRouteComponents',
                         destinations,
@@ -181,6 +183,7 @@ export class TurnoutMap {
     }
 
     async setRouteNew(startID: number, endID: number) {
+        console.log('setRouteNew');
         const start = await this.getNode(startID);
         const end = await this.getNode(endID);
         const path = await findPathNew(start, end, this._dbConnection, this);
