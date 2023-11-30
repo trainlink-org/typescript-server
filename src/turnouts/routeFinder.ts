@@ -276,24 +276,119 @@ export async function pathToTurnouts(
 export async function pathToTurnoutsNew(
     path: number[],
     turnoutMap: TurnoutMap,
+    dbConnection: Database,
 ): Promise<RouteObject> {
-    return new Promise((resolve) => {
-        resolve({
-            start: {
-                id: 0,
-                name: '',
-                description: '',
-                coordinate: { x: 0, y: 0 },
-            },
-            turnouts: [],
-            end: {
-                id: 0,
-                name: '',
-                description: '',
-                coordinate: { x: 0, y: 0 },
-            },
-            links: [],
-        });
+    console.log('Path to turnouts');
+    // Creates an array to store the turnouts that need to be changed
+    const turnoutStates: CurrentTurnoutState[] = [];
+
+    // Iterate over the path, ignoring the destinations at each end
+    for (let i = 1; i < path.length - 1; i++) {
+        const point = path[i];
+        // Ignore it if its a destination
+
+        if (
+            !(await turnoutMap.getDestination(point)) &&
+            (await turnoutMap.getTurnout(point))
+        ) {
+            const turnout = turnoutMap.getTurnout(point);
+            //TODO implement error handling
+            void turnout.then(async (turnout) => {
+                if (turnout) {
+                    // Will never be false due to prev if
+                    // Find the primary and secondary link for the turnout
+                    const primaryLink = await turnoutMap.getLink(
+                        turnout.primaryDirection,
+                    );
+                    const secondaryLink = await turnoutMap.getLink(
+                        turnout.secondaryDirection,
+                    );
+                    // Make sure they aren't undefined
+                    if (primaryLink && secondaryLink) {
+                        // Get the start and ends of each link
+                        const primaryLinkEnds = [
+                            primaryLink.start,
+                            primaryLink.end,
+                        ];
+                        const secondaryLinkEnds = [
+                            secondaryLink.start,
+                            secondaryLink.end,
+                        ];
+                        // Work out which way to throw the turnout
+                        if (
+                            primaryLinkEnds.includes(path[i - 1]) ||
+                            primaryLinkEnds.includes(path[i + 1])
+                        ) {
+                            turnoutStates.push({
+                                id: turnout.id,
+                                state: TurnoutState.closed,
+                            });
+                        } else if (
+                            secondaryLinkEnds.includes(path[i - 1]) ||
+                            secondaryLinkEnds.includes(path[i + 1])
+                        ) {
+                            turnoutStates.push({
+                                id: turnout.id,
+                                state: TurnoutState.thrown,
+                            });
+                        }
+                    }
+                }
+            });
+        }
+    }
+    // Find the links used by the route (used for highlighting and allocation)
+    const links: TurnoutLink[] = [];
+    for (let i = 0; i < path.length - 1; i++) {
+        console.log(await turnoutMap.getDestination(path[i]));
+        const mapPoint = await turnoutMap.getNode(path[i]);
+        const nextMapPoint = await turnoutMap.getNode(path[i + 1]);
+        // const mapPoint: MapPoint | undefined =
+        //     path[i] <= 0
+        //         ? await turnoutMap.getDestination(path[i])
+        //         : currentTurnout;
+        // const nextMapPoint: MapPoint | undefined =
+        //     path[i + 1] <= 0
+        //         ? await turnoutMap.getDestination(path[i + 1])
+        //         : nextTurnout;
+        if (mapPoint && nextMapPoint) {
+            // const edge = graph.getEdge(mapPoint, nextMapPoint);
+            const sql =
+                'SELECT linkID FROM Links WHERE (startNodeID = ? AND endNodeID = ?) OR (endNodeID = ? AND startNodeID = ?);';
+            console.log(mapPoint);
+            const inserts = [
+                mapPoint.id,
+                nextMapPoint.id,
+                mapPoint.id,
+                nextMapPoint.id,
+            ];
+            const edge = await dbConnection.get(sql, inserts);
+            if (edge) links.push(edge.linkID);
+        }
+    }
+    console.log(`Links: ${links}`);
+
+    // Find the start and end of the path
+    const start = await turnoutMap.getDestination(path[0]);
+    const end = await turnoutMap.getDestination(path[path.length - 1]);
+
+    return new Promise<RouteObject>((resolve, reject) => {
+        // Check if undefined
+        if (start && end) {
+            /** Return a {@link RouteObject} */
+            log({
+                start: start,
+                end: end,
+                links: links,
+                turnouts: turnoutStates,
+            });
+            resolve({
+                start: start,
+                end: end,
+                links: links,
+                turnouts: turnoutStates,
+            });
+        } else reject();
     });
 }
 
