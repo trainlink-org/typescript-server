@@ -89,7 +89,7 @@ export class Sequence implements AutomationScript {
 
     toString(): string {
         return `SEQUENCE(${this.id})\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    DONE`;
     }
 
@@ -129,7 +129,7 @@ export class Route implements AutomationScript {
 
     toString(): string {
         return `ROUTE(${this.id}, "${this.name}")\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    DONE`;
     }
 

@@ -10,7 +10,7 @@ import type { TurnoutMap } from '../turnouts';
 export function changeCoordinate(
     id: number,
     coord: Coordinate,
-    turnoutMap: TurnoutMap
+    turnoutMap: TurnoutMap,
 ) {
     if (id > 0) {
         turnoutMap.updateTurnoutCoordinate(id, coord);

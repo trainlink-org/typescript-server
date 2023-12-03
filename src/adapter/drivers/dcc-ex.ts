@@ -31,7 +31,7 @@ export class DCCExDriver extends DeviceDriver {
         serialPort: string,
         adapter: HardwareAdapter,
         driverChangedCallback: (adapter: HardwareAdapter) => void,
-        callback: () => void
+        callback: () => void,
     ) {
         super('DCC-EX');
         log('DCC-EX driver');
@@ -55,7 +55,7 @@ export class DCCExDriver extends DeviceDriver {
                     return {
                         name:
                             DEVICE_LOOKUP.get(
-                                `${device.vendorId}${device.productId}`
+                                `${device.vendorId}${device.productId}`,
                             ) || `Serial Device ${device.path}`,
                         address: device.path,
                         driver: 'DCC-EX',

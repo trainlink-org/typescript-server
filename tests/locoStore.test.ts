@@ -32,19 +32,19 @@ describe('Test locostore', () => {
     test('Add a loco', () => {
         store.add(new Loco('Test', 100));
         expect(Array.from(store.getAllLocos())).toContainEqual(
-            new Loco('Test', 100)
+            new Loco('Test', 100),
         );
     });
     test('Get a loco', async () => {
         store.add(new Loco('Test2', 101));
         expect(store.getLoco(101, SyncLevel.None)).resolves.toEqual(
-            new Loco('Test2', 101)
+            new Loco('Test2', 101),
         );
         expect(store.getLoco('Test2', SyncLevel.None)).resolves.toEqual(
-            new Loco('Test2', 101)
+            new Loco('Test2', 101),
         );
         expect(store.getLoco('Not in store', SyncLevel.None)).rejects.toEqual(
-            'Loco not found in store'
+            'Loco not found in store',
         );
     });
 });

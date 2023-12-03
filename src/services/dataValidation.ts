@@ -9,7 +9,7 @@ import { log } from '../logger';
  */
 export async function validateName(
     name: string,
-    store: LocoStore
+    store: LocoStore,
 ): Promise<boolean> {
     log(`Validating name (${name})`);
     // Start by assuming input is valid, set to invalid if it fails a condition
@@ -43,7 +43,7 @@ export async function validateName(
  */
 export async function validateAddress(
     address: number,
-    store: LocoStore
+    store: LocoStore,
 ): Promise<boolean> {
     log(`Validating address (${address})`);
     let isCorrect = true;
@@ -77,7 +77,7 @@ export async function validateAddress(
  */
 export async function validateCurrentAddress(
     address: number,
-    store: LocoStore
+    store: LocoStore,
 ): Promise<boolean> {
     log(`Validating current address (${address})`);
     let isCorrect = true;
@@ -115,7 +115,7 @@ export async function validateUpdatedLoco(
     oldAddress: number,
     newName: string,
     newAddress: number,
-    store: LocoStore
+    store: LocoStore,
 ): Promise<boolean> {
     if (oldAddress !== newAddress) {
         if (
@@ -130,7 +130,7 @@ export async function validateUpdatedLoco(
             store
                 .getLoco(oldAddress)
                 .then((loco) => resolve(loco.name !== newName))
-                .catch(() => resolve(true))
+                .catch(() => resolve(true)),
         )
     ) {
         if (!(await validateName(newName, store))) {

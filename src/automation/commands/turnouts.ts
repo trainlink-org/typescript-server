@@ -23,8 +23,8 @@ export class throwTurnout implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -63,8 +63,8 @@ export class closeTurnout implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -105,8 +105,8 @@ export class ifThrown implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -131,7 +131,7 @@ export class ifThrown implements AutomationCommand {
 
     toString(): string {
         return `IFTHROWN(${this._id})\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    ENDIF`;
     }
 }
@@ -158,8 +158,8 @@ export class ifClosed implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -184,7 +184,7 @@ export class ifClosed implements AutomationCommand {
 
     toString(): string {
         return `IFCLOSED(${this._id})\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    ENDIF`;
     }
 }

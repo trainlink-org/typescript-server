@@ -45,7 +45,7 @@ export class onClose implements AutomationScript, EventHandler {
 
     toString() {
         return `ONCLOSE(${this._turnoutID})\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    DONE`;
     }
 
@@ -88,7 +88,7 @@ export class onThrow implements AutomationScript, EventHandler {
 
     toString() {
         return `ONTHROW(${this._turnoutID})\n    ${this.children.join(
-            '\n    '
+            '\n    ',
         )}\n    DONE`;
     }
 
