@@ -164,17 +164,12 @@ export class LocoStore {
                 socketSync === SyncLevel.All ||
                 socketSync === SyncLevel.ClientOnly
             ) {
-                io.emit(
-                    'throttle/speedUpdate',
-                    loco.address,
-                    loco.speed,
-                    '',
-                    -1
-                );
+                io.emit('throttle/speedUpdate', loco.address, loco.speed, '');
                 io.emit(
                     'throttle/directionUpdate',
                     loco.address,
-                    loco.direction
+                    loco.direction,
+                    '',
                 );
             }
             if (
@@ -185,7 +180,7 @@ export class LocoStore {
                 void this._adapter.locoSetSpeed(
                     loco.address,
                     loco.speed,
-                    loco.direction
+                    loco.direction,
                 );
             }
         }
@@ -196,7 +191,7 @@ export class LocoStore {
      * @returns \{@link Loco} if found, undefined if not.
      */
     private _getLocoFromIdentifier(
-        identifier: LocoIdentifier
+        identifier: LocoIdentifier,
     ): Loco | undefined {
         let locoId: number;
         if (typeof identifier === 'string') {

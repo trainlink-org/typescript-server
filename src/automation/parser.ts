@@ -20,7 +20,7 @@ import {
  * @returns An array of automation scripts
  */
 export async function parser(
-    input: IntermediateSymbol[]
+    input: IntermediateSymbol[],
 ): Promise<AutomationScript[]> {
     const baseObjects: AutomationScript[] = [];
     const takenIds: number[] = [];
@@ -39,7 +39,7 @@ export async function parser(
  */
 function parseScript(
     input: IntermediateSymbol[],
-    takenIds: number[]
+    takenIds: number[],
 ): Promise<AutomationScript> {
     return new Promise<AutomationScript>((resolve, reject) => {
         let baseObject: AutomationScript;
@@ -51,17 +51,17 @@ function parseScript(
                 verifyParams(
                     `At SEQUENCE(${input[0].args})`,
                     Sequence.params,
-                    input[0].args
+                    input[0].args,
                 );
                 verifyId(
                     Number(input[0].args[0]),
                     takenIds,
-                    `At SEQUENCE(${input[0].args})`
+                    `At SEQUENCE(${input[0].args})`,
                 );
                 baseObject = new Sequence(
                     Number(input[0].args[0]),
                     input[0].args[1],
-                    []
+                    [],
                 ); //! Will break if id isn't a number
                 break;
 
@@ -69,12 +69,12 @@ function parseScript(
                 verifyParams(
                     `At ROUTE(${input[0].args})`,
                     Route.params,
-                    input[0].args
+                    input[0].args,
                 );
                 verifyId(
                     Number(input[0].args[0]),
                     takenIds,
-                    `At ROUTE(${input[0].args})`
+                    `At ROUTE(${input[0].args})`,
                 );
                 baseObject = new Route(Number(input[0].args[0]), '', []); //! Will break if id isn't a number
                 break;
@@ -83,17 +83,17 @@ function parseScript(
                 verifyParams(
                     `At AUTOMATION(${input[0].args})`,
                     Automation.params,
-                    input[0].args
+                    input[0].args,
                 );
                 verifyId(
                     Number(input[0].args[0]),
                     takenIds,
-                    `At AUTOMATION(${input[0].args})`
+                    `At AUTOMATION(${input[0].args})`,
                 );
                 baseObject = new Automation(
                     Number(input[0].args[0]),
                     input[0].args[1],
-                    []
+                    [],
                 ); //! Will break if id isn't a number
                 break;
 
@@ -101,7 +101,7 @@ function parseScript(
                 verifyParams(
                     `AT ONCLOSE(${input[0].args})`,
                     onClose.params,
-                    input[0].args
+                    input[0].args,
                 );
                 baseObject = new onClose(Number(input[0].args), []);
                 break;
@@ -109,7 +109,7 @@ function parseScript(
                 verifyParams(
                     `AT ONTHROW(${input[0].args})`,
                     onThrow.params,
-                    input[0].args
+                    input[0].args,
                 );
                 baseObject = new onThrow(Number(input[0].args), []);
                 break;
@@ -132,57 +132,57 @@ function parseScript(
                         verifyParams(
                             `At FWD(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.fwd.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.fwd(Number(input[0].args[0]))
+                            new commands.fwd(Number(input[0].args[0])),
                         );
                         break;
                     case 'REV':
                         verifyParams(
                             `At REV(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.rev.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.rev(Number(input[0].args[0]))
+                            new commands.rev(Number(input[0].args[0])),
                         );
                         break;
                     case 'SPEED':
                         verifyParams(
                             `At SPEED(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.speed.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.speed(Number(input[0].args[0]))
+                            new commands.speed(Number(input[0].args[0])),
                         );
                         break;
                     case 'FON':
                         verifyParams(
                             `At FON(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.fon.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.fon(Number(input[0].args[0]))
+                            new commands.fon(Number(input[0].args[0])),
                         );
                         break;
                     case 'FOFF':
                         verifyParams(
                             `At FOFF(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.foff.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.foff(Number(input[0].args[0]))
+                            new commands.foff(Number(input[0].args[0])),
                         );
                         break;
                     case 'STOP':
                         verifyParams(
                             `At STOP in ${baseObject.type} ${baseObject.id}`,
                             commands.stop.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(new commands.stop());
                         break;
@@ -190,7 +190,7 @@ function parseScript(
                         verifyParams(
                             `At ESTOP in ${baseObject.type} ${baseObject.id}`,
                             commands.estop.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(new commands.estop());
                         break;
@@ -198,37 +198,37 @@ function parseScript(
                         verifyParams(
                             `At THROW(${input[0].args} in ${baseObject.type} ${baseObject.id}`,
                             commands.throwTurnout.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.throwTurnout(Number(input[0].args[0]))
+                            new commands.throwTurnout(Number(input[0].args[0])),
                         );
                         break;
                     case 'CLOSE':
                         verifyParams(
                             `At CLOSE(${input[0].args} in ${baseObject.type} ${baseObject.id}`,
                             commands.closeTurnout.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.closeTurnout(Number(input[0].args[0]))
+                            new commands.closeTurnout(Number(input[0].args[0])),
                         );
                         break;
                     case 'DELAY':
                         verifyParams(
                             `At DELAY(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.delay.params,
-                            input[0].args
+                            input[0].args,
                         );
                         children.push(
-                            new commands.delay(Number(input[0].args[0]))
+                            new commands.delay(Number(input[0].args[0])),
                         );
                         break;
                     case 'DONE':
                         verifyParams(
                             `At DONE(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             [],
-                            input[0].args
+                            input[0].args,
                         );
                         level -= 1;
                         activeObjects.pop();
@@ -237,7 +237,7 @@ function parseScript(
                         verifyParams(
                             `At ENDTASK(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             [],
-                            input[0].args
+                            input[0].args,
                         );
                         level -= 1;
                         activeObjects.pop();
@@ -247,11 +247,11 @@ function parseScript(
                         verifyParams(
                             `At IFTHROWN(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.ifThrown.params,
-                            input[0].args
+                            input[0].args,
                         );
                         level++;
                         children.push(
-                            new commands.ifThrown(Number(input[0].args[0]), [])
+                            new commands.ifThrown(Number(input[0].args[0]), []),
                         );
                         activeObjects.push(children[children.length - 1]);
                         break;
@@ -260,11 +260,11 @@ function parseScript(
                         verifyParams(
                             `At IFCLOSED(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             commands.ifClosed.params,
-                            input[0].args
+                            input[0].args,
                         );
                         level++;
                         children.push(
-                            new commands.ifClosed(Number(input[0].args[0]), [])
+                            new commands.ifClosed(Number(input[0].args[0]), []),
                         );
                         activeObjects.push(children[children.length - 1]);
                         break;
@@ -272,7 +272,7 @@ function parseScript(
                         verifyParams(
                             `At ENDIF(${input[0].args}) in ${baseObject.type} ${baseObject.id}`,
                             [],
-                            input[0].args
+                            input[0].args,
                         );
                         level--;
                         activeObjects.pop();
@@ -282,30 +282,30 @@ function parseScript(
                             new AutomationError(
                                 AutomationErrorType.syntaxError,
                                 'Missing DONE keyword',
-                                `At ${baseObject.type} ${baseObject.id}`
-                            )
+                                `At ${baseObject.type} ${baseObject.id}`,
+                            ),
                         );
                         break;
                     default:
                         // Command not implemented, check if it should be
                         if (
                             commands.unimplementedCommands.includes(
-                                input[0].name
+                                input[0].name,
                             )
                         ) {
                             reject(
                                 new AutomationError(
                                     AutomationErrorType.syntaxError,
                                     `The command "${input[0].name}" hasn't been implemented yet so it won't work.`,
-                                    `In ${baseObject.type} ${baseObject.id}`
-                                )
+                                    `In ${baseObject.type} ${baseObject.id}`,
+                                ),
                             );
                         } else {
                             reject(
                                 new AutomationError(
                                     AutomationErrorType.syntaxError,
-                                    `Unknown command "${input[0].name}" in ${baseObject.type} ${baseObject.id}`
-                                )
+                                    `Unknown command "${input[0].name}" in ${baseObject.type} ${baseObject.id}`,
+                                ),
                             );
                         }
                 }
@@ -328,14 +328,14 @@ function parseScript(
 function verifyParams(
     location: string,
     commandParams: string[],
-    params: string[]
+    params: string[],
 ) {
     // Check the lengths match
     if (commandParams.length === 0 && params.length !== 0) {
         throw new AutomationError(
             AutomationErrorType.syntaxError,
             `Unexpected parameters given (${params.length} given but none needed)`,
-            location
+            location,
         );
     } else if (
         params.length <
@@ -347,7 +347,7 @@ function verifyParams(
         throw new AutomationError(
             AutomationErrorType.syntaxError,
             `Wrong number of arguments given (${params.length} instead of ${commandParams.length})`,
-            location
+            location,
         );
     }
 
@@ -359,7 +359,7 @@ function verifyParams(
                 `Incorrect data type for argument ${
                     index + 1
                 } (Should be a ${value} but "${params[index]}" was given)`,
-                location
+                location,
             );
     });
 }
@@ -375,7 +375,7 @@ function verifyId(id: number, takenIds: number[], location: string) {
         throw new AutomationError(
             AutomationErrorType.syntaxError,
             `The id ${id} is already being used`,
-            location
+            location,
         );
     } else {
         takenIds.push(id);

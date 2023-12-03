@@ -31,7 +31,7 @@ export abstract class DeviceDriver {
     abstract setSpeed(
         address: number,
         speed: number,
-        direction: number
+        direction: number,
     ): Promise<void>;
     /**
      * Sends an emergency stop signal to a loco

@@ -83,16 +83,16 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                     reject(
                         new AutomationError(
                             AutomationErrorType.syntaxError,
-                            'Missing end of comment block'
-                        )
+                            'Missing end of comment block',
+                        ),
                     );
                 } else if (!input.includes('/*') && input.includes('*/')) {
                     // We are missing the start of a comment block
                     reject(
                         new AutomationError(
                             AutomationErrorType.syntaxError,
-                            'Missing start of comment block'
-                        )
+                            'Missing start of comment block',
+                        ),
                     );
                 }
                 // Rejoin the array with newlines to allow the second stage to work properly
@@ -165,7 +165,7 @@ export function lexer(input: string): Promise<IntermediateSymbol[]> {
                     name: value.toUpperCase(),
                     args: [],
                 };
-            }
+            },
         );
         resolve(symbolList);
     });

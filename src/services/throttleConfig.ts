@@ -24,7 +24,7 @@ export function editLoco(
     store: LocoStore,
     oldAddress: number,
     newAddress: number,
-    name: string
+    name: string,
 ) {
     store.updateLoco(oldAddress, name, newAddress);
     io.emit('config/locoEdited', oldAddress, newAddress, name);

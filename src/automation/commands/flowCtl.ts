@@ -19,8 +19,8 @@ export class delay implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());

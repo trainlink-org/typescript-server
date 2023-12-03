@@ -17,8 +17,8 @@ export class estop implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -58,8 +58,8 @@ export class fwd implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -70,7 +70,7 @@ export class fwd implements AutomationCommand {
                     new estop().execute(scope);
                 } else {
                     log(
-                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
+                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`,
                     );
                     scope.loco.direction = Direction.forward;
                     scope.loco.speed = this._newSpeed;
@@ -103,8 +103,8 @@ export class rev implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -115,7 +115,7 @@ export class rev implements AutomationCommand {
                     new estop().execute(scope);
                 } else {
                     log(
-                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`
+                        `Move loco ${scope.loco.address} forward at speed ${this._newSpeed}`,
                     );
                     scope.loco.direction = Direction.reverse;
                     scope.loco.speed = this._newSpeed;
@@ -148,8 +148,8 @@ export class speed implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -157,7 +157,7 @@ export class speed implements AutomationCommand {
         return new Promise<void>((resolve) => {
             if (scope.loco) {
                 log(
-                    `Move loco ${scope.loco.address} at speed ${this._newSpeed}`
+                    `Move loco ${scope.loco.address} at speed ${this._newSpeed}`,
                 );
                 scope.loco.speed = this._newSpeed;
             }
@@ -183,8 +183,8 @@ export class stop implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -223,8 +223,8 @@ export class fon implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());
@@ -264,8 +264,8 @@ export class foff implements AutomationCommand {
         }
         if (scope.bus) {
             if (!scope.running)
-                await new Promise((resolve) =>
-                    scope.bus?.once('running', resolve)
+                await new Promise(
+                    (resolve) => scope.bus?.once('running', resolve),
                 );
         }
         scope.commandStartTime.push(new Date());

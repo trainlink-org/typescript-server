@@ -29,7 +29,7 @@ export function sendLocoState(socket: CustomSocket, store: LocoStore) {
  */
 export async function sendTurnoutMapState(
     socket: CustomSocket,
-    turnoutMap: TurnoutMap
+    turnoutMap: TurnoutMap,
 ) {
     const turnoutPacket: TurnoutPacket = {
         turnouts: await turnoutMap.getTurnouts(),
@@ -55,13 +55,13 @@ export function sendTrackState(socket: CustomSocket) {
  */
 export function sendHardwareState(
     socket: CustomSocket,
-    adapter: HardwareAdapter
+    adapter: HardwareAdapter,
 ) {
     socket.emit('metadata/availableDrivers', availableDrivers);
     socket.emit(
         'hardware/driverChanged',
         adapter.driverName,
-        adapter.driverMsg
+        adapter.driverMsg,
     );
     socket.emit('hardware/newActiveDevice', adapter.device);
 }

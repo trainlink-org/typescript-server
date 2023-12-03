@@ -51,7 +51,7 @@ export function startSocketServer(
     store: LocoStore,
     runtime: Runtime,
     turnoutMap: TurnoutMap,
-    adapter: HardwareAdapter
+    adapter: HardwareAdapter,
 ) {
     // const port = validateEnvInt(portString, 6868);
 
@@ -63,7 +63,7 @@ export function startSocketServer(
                 // origin: '*',
                 origin: true,
             },
-        }
+        },
     );
     io.on('connection', (socket) => {
         socket.on('metadata/handshake', (_name, version) => {
@@ -73,13 +73,13 @@ export function startSocketServer(
                 semver.satisfies(
                     versionString,
                     new Range(
-                        `${serverVersion.major}.${serverVersion.minor}.x`
+                        `${serverVersion.major}.${serverVersion.minor}.x`,
                     ),
                     {
                         includePrerelease: serverVersion.prerelease.length
                             ? true
                             : false,
-                    }
+                    },
                 )
             ) {
                 // Client is compatible
@@ -90,7 +90,7 @@ export function startSocketServer(
                     // serverVersion.name,
                     pkg.name,
                     serverConfig.productName,
-                    serverVersion.version
+                    serverVersion.version,
                 );
                 statusHandler.sendLocoState(socket, store);
                 //TODO implement error handling
@@ -109,26 +109,19 @@ export function startSocketServer(
             userCount -= 1;
             log(`A user disconnected: ${reason}`);
         });
-        socket.on('throttle/setSpeed', (identifier, speed, throttleID) => {
-            throttleHandler.speedChange(
-                identifier,
-                speed,
-                throttleID,
-                io,
-                socket,
-                store
-            );
+        socket.on('throttle/setSpeed', (identifier, speed) => {
+            throttleHandler.speedChange(identifier, speed, io, socket, store);
         });
-        socket.on('throttle/switchDirection', (identifier) => {
-            throttleHandler.changeDirection(identifier, io, store);
-        });
+        // socket.on('throttle/switchDirection', (identifier) => {
+        //     throttleHandler.changeDirection(identifier, io, store);
+        // });
         socket.on('throttle/setDirection', (identifier, direction) => {
             throttleHandler.setDirection(
                 identifier,
                 direction,
                 io,
                 socket,
-                store
+                store,
             );
         });
         socket.on('throttle/setFunction', (identifier, functionNum, state) => {
@@ -137,7 +130,8 @@ export function startSocketServer(
                 functionNum,
                 state,
                 io,
-                store
+                socket,
+                store,
             );
         });
         socket.on('throttle/setTrackPower', (state) => {
@@ -154,8 +148,8 @@ export function startSocketServer(
                             ? error
                             : new AutomationError(
                                   AutomationErrorType.unknownError,
-                                  'An unknown error occurred'
-                              )
+                                  'An unknown error occurred',
+                              ),
                     );
                 });
             const automationList = runtime.getAllAutomations();
@@ -212,17 +206,17 @@ export function startSocketServer(
                         oldAddress,
                         newName,
                         newAddress,
-                        store
+                        store,
                     )
                 ) {
                     throttleConfig.editLoco(
                         store,
                         oldAddress,
                         newAddress,
-                        newName
+                        newName,
                     );
                 }
-            }
+            },
         );
         socket.on('config/deleteLoco', async (address: number) => {
             if (await validateCurrentAddress(address, store)) {
@@ -233,12 +227,12 @@ export function startSocketServer(
             'config/routes/changeObjectCoordinate',
             (id: number, coord: Coordinate) => {
                 routesConfig.changeCoordinate(id, coord, turnoutMap);
-            }
+            },
         );
         socket.on('hardware/getDevices', async () => {
             socket.emit(
                 'hardware/availableDevices',
-                await adapter.availableDevices
+                await adapter.availableDevices,
             );
         });
         socket.on('hardware/setDriver', (driver, address) => {

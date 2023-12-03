@@ -34,7 +34,7 @@ export class Runtime {
     private _scriptsStore = new Map<number, AutomationScript>();
     private _runningScriptsStore = new Map<PID, ScriptRunner>();
     private _updateCallback: (
-        runningAutomations: RunningAutomationClient[]
+        runningAutomations: RunningAutomationClient[],
     ) => void;
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     private _persistentUpdateCallback = () => {};
@@ -55,7 +55,7 @@ export class Runtime {
         store: LocoStore,
         turnoutMap: TurnoutMap,
         dbConnection: Database,
-        callback: (runningAutomations: RunningAutomationClient[]) => void
+        callback: (runningAutomations: RunningAutomationClient[]) => void,
     ) {
         this._store = store;
         this._turnoutMap = turnoutMap;
@@ -127,7 +127,7 @@ export class Runtime {
                     this._runningScriptsStore.delete(pid);
                     this._updateCallback(this.getRunningAutomations());
                     this._pidAllocator.freePID(pid);
-                })
+                }),
             );
             this._runningScriptsStore.get(pid)?.run();
             this._updateCallback(this.getRunningAutomations());
@@ -259,12 +259,12 @@ export class Runtime {
         const turnoutEvent = () => {
             if (eventArray[1] === 'throw') {
                 const handlerScript = this._eventHandlers.turnouts.throw.get(
-                    Number(eventArray[2])
+                    Number(eventArray[2]),
                 );
                 if (handlerScript) script = handlerScript;
             } else if (eventArray[1] === 'close') {
                 const handlerScript = this._eventHandlers.turnouts.close.get(
-                    Number(eventArray[2])
+                    Number(eventArray[2]),
                 );
                 if (handlerScript) script = handlerScript;
             }
@@ -289,7 +289,7 @@ export class Runtime {
                         this._runningScriptsStore.delete(pid);
                         this._updateCallback(this.getRunningAutomations());
                         this._pidAllocator.freePID(pid);
-                    })
+                    }),
                 );
                 // Run the script
                 this._runningScriptsStore.get(pid)?.run();
@@ -369,7 +369,7 @@ export class ScriptRunner {
         pid: PID,
         script: AutomationScript,
         scope: Scope,
-        callback: () => void
+        callback: () => void,
     ) {
         this.pid = pid;
         this.script = script;
@@ -423,11 +423,11 @@ export class ScriptRunner {
                 const startSecond = Math.round(
                     this._scope.commandStartTime[
                         this._scope.commandStartTime.length - 2
-                    ].getTime()
+                    ].getTime(),
                 );
                 const pauseSecond = Math.round(this._pauseTime.getTime());
                 const totalSecond = Number(
-                    this._scope.currentCommand[1].split('(')[1].split(')')[0]
+                    this._scope.currentCommand[1].split('(')[1].split(')')[0],
                 );
 
                 const newTime = totalSecond - (pauseSecond - startSecond);

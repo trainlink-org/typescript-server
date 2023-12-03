@@ -88,7 +88,7 @@ export class HardwareAdapter {
                         this._driverChangedCallback,
                         () => {
                             this._driverStatus = DriverStatus.Available;
-                        }
+                        },
                     );
                     break;
                 default:
@@ -120,13 +120,13 @@ export class HardwareAdapter {
     locoSetSpeed(
         address: number,
         speed: number,
-        direction: Direction
+        direction: Direction,
     ): Promise<void> {
         return this.waitTillDriverAvailable().then(() => {
             return this._driver.setSpeed(
                 address,
                 speed,
-                directionToNum(direction)
+                directionToNum(direction),
             );
         });
     }
