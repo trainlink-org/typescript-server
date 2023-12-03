@@ -53,8 +53,6 @@ export function startSocketServer(
     turnoutMap: TurnoutMap,
     adapter: HardwareAdapter,
 ) {
-    // const port = validateEnvInt(portString, 6868);
-
     // Creates a new socket.io server
     io = new Server<ClientToServerEvents, ServerToClientEvents>(
         serverConfig.port,
@@ -87,7 +85,6 @@ export function startSocketServer(
                 log(`A user connected (${userCount} in total)`);
                 socket.emit(
                     'metadata/handshake',
-                    // serverVersion.name,
                     pkg.name,
                     serverConfig.productName,
                     serverVersion.version,
@@ -112,9 +109,6 @@ export function startSocketServer(
         socket.on('throttle/setSpeed', (identifier, speed) => {
             throttleHandler.speedChange(identifier, speed, io, socket, store);
         });
-        // socket.on('throttle/switchDirection', (identifier) => {
-        //     throttleHandler.changeDirection(identifier, io, store);
-        // });
         socket.on('throttle/setDirection', (identifier, direction) => {
             throttleHandler.setDirection(
                 identifier,

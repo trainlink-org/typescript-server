@@ -1,21 +1,15 @@
 import { trackPower } from '../index';
-import {
-    Direction,
-    type LocoIdentifier,
-    type ServerToClientEvents,
-    type ClientToServerEvents,
-} from '@trainlink-org/trainlink-types';
+import { Direction, type LocoIdentifier } from '@trainlink-org/trainlink-types';
 import type { HardwareAdapter } from '../adapter';
 import { type LocoStore, SyncLevel } from '../locos';
 import type { SocketIoServer } from '../socket';
 
-import type { Server, Socket } from 'socket.io';
+import type { Socket } from 'socket.io';
 
 /**
  * Used to update the speed of a loco in response to a socket packet and update other clients
  * @param identifier The identifier of the loco
  * @param speed The new speed
- * @param throttleID The ID of the throttle that created the change
  * @param io The socket.io server object to update other clients
  * @param socket The socket instance that sent the message
  * @param store The LocoStore instance
@@ -33,40 +27,6 @@ export function speedChange(
         .catch();
     io.emit('throttle/speedUpdate', identifier, speed, socket.id);
 }
-
-/**
- * Used to flip the direction of a loco in response to a socket packet and update other clients
- * @param identifier The identifier of the loco
- * @param io The socket.io server object to update other clients
- * @param store The LocoStore instance
- */
-// export function changeDirection(
-//     identifier: LocoIdentifier,
-//     io: Server<ClientToServerEvents, ServerToClientEvents>,
-//     socket: Socket,
-//     store: LocoStore,
-// ) {
-//     store
-//         .getLoco(identifier)
-//         .then((loco) => {
-//             switch (loco.direction) {
-//                 case Direction.forward:
-//                     loco.direction = Direction.reverse;
-//                     break;
-
-//                 case Direction.reverse:
-//                     loco.direction = Direction.forward;
-//                     break;
-//             }
-//             io.emit(
-//                 'throttle/directionUpdate',
-//                 identifier,
-//                 loco.direction,
-//                 socket.id,
-//             );
-//         })
-//         .catch();
-// }
 
 /**
  * Used to update the direction of a loco in response to a socket packet and update other clients
